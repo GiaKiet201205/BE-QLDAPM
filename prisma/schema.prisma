@@ -1,0 +1,462 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Role {
+  roleId      String       @id @map("role_id") @db.VarChar(50)
+  roleName    String       @unique @map("role_name") @db.VarChar(50)
+  description String?      @db.VarChar(255)
+  permissions Permission[]
+  users       User[]
+  salaryRanks SalaryRank[]
+
+  @@map("roles")
+}
+
+model AppFunction {
+  functionId   String       @id @map("function_id") @db.VarChar(50)
+  functionName String       @map("function_name") @db.VarChar(50)
+  permissions  Permission[]
+
+  @@map("functions")
+}
+
+model Permission {
+  roleId     String @map("role_id") @db.VarChar(50)
+  functionId String @map("function_id") @db.VarChar(50)
+  action     String @db.VarChar(30)
+
+  role     Role        @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  function AppFunction @relation(fields: [functionId], references: [functionId], onDelete: Cascade)
+
+  @@id([roleId, functionId, action])
+  @@map("permissions")
+}
+
+model User {
+  username     String   @id @db.VarChar(50)
+  email        String   @unique @db.VarChar(100)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  roleId       String   @map("role_id") @db.VarChar(50)
+  status       String   @default("ACTIVE") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  role           Role       @relation(fields: [roleId], references: [roleId], onDelete: Restrict)
+  employee       Employee?
+  createdClasses Class[]    @relation("ClassCreatedBy")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model SalaryRank {
+  salaryRankId String   @id @map("salary_rank_id") @db.VarChar(50)
+  roleId       String   @map("role_id") @db.VarChar(50)
+  rank         String   @db.VarChar(50)
+  amount       Decimal  @db.Decimal(14, 2)
+  status       String   @default("ACTIVE") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  role      Role       @relation(fields: [roleId], references: [roleId], onDelete: Restrict)
+  employees Employee[]
+
+  @@unique([roleId, rank])
+  @@map("salary_ranks")
+}
+
+model Employee {
+  employeeId     String    @id @default(cuid()) @map("employee_id") @db.VarChar(50)
+  username       String    @unique @db.VarChar(50)
+  employeeCode   String    @unique @map("employee_code") @db.VarChar(30)
+  fullName       String    @map("full_name") @db.VarChar(100)
+  phone          String?   @db.VarChar(15)
+  specialization String?   @db.VarChar(100)
+  salaryRankId   String?   @map("salary_rank_id") @db.VarChar(50)
+  reviewedDate   DateTime? @map("reviewed_date") @db.Timestamptz(6)
+  status         String    @default("ACTIVE") @db.VarChar(20)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user                     User               @relation(fields: [username], references: [username], onDelete: Restrict)
+  salaryRank               SalaryRank?        @relation(fields: [salaryRankId], references: [salaryRankId], onDelete: SetNull)
+  certificates             Certificate[]
+  availabilities           Availability[]     @relation("AvailabilityOwner")
+  reviewedAvailabilities   Availability[]     @relation("AvailabilityReviewer")
+  teachingSchedules        TeachingSchedule[] @relation("TeachingTeacher")
+  assignedTeachingSchedules TeachingSchedule[] @relation("TeachingAssigner")
+  staffSchedules           StaffSchedule[]    @relation("StaffEmployee")
+  assignedStaffSchedules   StaffSchedule[]    @relation("StaffAssigner")
+  classAccessScopes        ClassAccessScope[]
+  assignments              Assignment[]       @relation("AssignmentTeacher")
+  exams                    Exam[]             @relation("ExamTeacher")
+  evaluatedResults         StudentResult[]    @relation("ResultEvaluator")
+  employeeSalaries         EmployeeSalary[]
+  staffSalaries            StaffSalary[]      @relation("StaffSalaryEmployee")
+  managedStaffSalaries     StaffSalary[]      @relation("StaffSalaryManager")
+
+  @@index([salaryRankId])
+  @@map("employees")
+}
+
+model Certificate {
+  certificateId   String    @id @default(cuid()) @map("certificate_id") @db.VarChar(50)
+  employeeId      String    @map("employee_id") @db.VarChar(50)
+  certificateType String    @map("certificate_type") @db.VarChar(30)
+  score           Float?
+  scoreSW         Float?    @map("score_sw")
+  issueDate       DateTime? @map("issue_date") @db.Date
+  expiryDate      DateTime? @map("expiry_date") @db.Date
+  issuer          String?   @db.VarChar(100)
+  certificateUrl  String?   @map("certificate_url") @db.VarChar(500)
+  status          String    @default("ACTIVE") @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@map("certificates")
+}
+
+model Course {
+  courseId    String   @id @default(cuid()) @map("course_id") @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  level       String?  @db.VarChar(30)
+  duration    Int?
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  classes        Class[]
+  lessons        Lesson[]
+  studentTargets StudentTarget[]
+
+  @@map("courses")
+}
+
+model Class {
+  classId           String   @id @default(cuid()) @map("class_id") @db.VarChar(50)
+  courseId          String   @map("course_id") @db.VarChar(50)
+  classCode         String   @unique @map("class_code") @db.VarChar(30)
+  name              String   @db.VarChar(150)
+  startDate         DateTime @map("start_date") @db.Date
+  endDate           DateTime @map("end_date") @db.Date
+  status            String   @default("DRAFT") @db.VarChar(20)
+  createdByUsername String?  @map("created_by") @db.VarChar(50)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  course             Course                   @relation(fields: [courseId], references: [courseId], onDelete: Restrict)
+  createdBy          User?                    @relation("ClassCreatedBy", fields: [createdByUsername], references: [username], onDelete: SetNull)
+  lessons            Lesson[]
+  teachingSchedules  TeachingSchedule[]
+  staffSchedules     StaffSchedule[]
+  classStudents      ClassStudent[]
+  accessScopes       ClassAccessScope[]
+  targetRequirements ClassTargetRequirement[]
+  assignments        Assignment[]
+  exams              Exam[]
+  studentResults     StudentResult[]
+
+  @@index([courseId])
+  @@index([status])
+  @@map("classes")
+}
+
+model Lesson {
+  lessonId    String   @id @default(cuid()) @map("lesson_id") @db.VarChar(50)
+  courseId    String   @map("course_id") @db.VarChar(50)
+  classId     String?  @map("class_id") @db.VarChar(50)
+  title       String   @db.VarChar(150)
+  description String?  @db.Text
+  contentType String?  @map("content_type") @db.VarChar(30)
+  contentUrl  String?  @map("content_url") @db.VarChar(500)
+  orderIndex  Int      @default(0) @map("order_index")
+  status      String   @default("ACTIVE") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  course Course @relation(fields: [courseId], references: [courseId], onDelete: Restrict)
+  class  Class? @relation(fields: [classId], references: [classId], onDelete: SetNull)
+
+  @@index([courseId, orderIndex])
+  @@index([classId])
+  @@map("lessons")
+}
+
+model Availability {
+  availabilityId   String    @id @default(cuid()) @map("availability_id") @db.VarChar(50)
+  employeeId       String    @map("employee_id") @db.VarChar(50)
+  availableDate    DateTime? @map("available_date") @db.Date
+  dayOfWeek        String?   @map("day_of_week") @db.VarChar(10)
+  startTime        DateTime  @map("start_time") @db.Time(0)
+  endTime          DateTime  @map("end_time") @db.Time(0)
+  shift            String?   @db.VarChar(50)
+  availabilityType String?   @map("availability_type") @db.VarChar(30)
+  campus           String?   @db.VarChar(100)
+  note             String?   @db.VarChar(255)
+  status           String    @default("pending") @db.VarChar(20)
+  reviewedAt       DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewedById     String?   @map("reviewed_by") @db.VarChar(50)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee   Employee  @relation("AvailabilityOwner", fields: [employeeId], references: [employeeId], onDelete: Restrict)
+  reviewedBy Employee? @relation("AvailabilityReviewer", fields: [reviewedById], references: [employeeId], onDelete: SetNull)
+
+  @@index([employeeId, availableDate])
+  @@index([employeeId, dayOfWeek, shift])
+  @@map("availabilities")
+}
+
+model TeachingSchedule {
+  teachingScheduleId String   @id @default(cuid()) @map("teaching_schedule_id") @db.VarChar(50)
+  teacherId          String   @map("teacher_id") @db.VarChar(50)
+  classId            String   @map("class_id") @db.VarChar(50)
+  date               DateTime @db.Date
+  startTime          DateTime @map("start_time") @db.Time(0)
+  endTime            DateTime @map("end_time") @db.Time(0)
+  status             String   @default("ASSIGNED") @db.VarChar(20)
+  assignedById       String?  @map("assigned_by") @db.VarChar(50)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  teacher    Employee  @relation("TeachingTeacher", fields: [teacherId], references: [employeeId], onDelete: Restrict)
+  class      Class     @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  assignedBy Employee? @relation("TeachingAssigner", fields: [assignedById], references: [employeeId], onDelete: SetNull)
+
+  @@index([teacherId, date])
+  @@index([classId, date])
+  @@map("teaching_schedules")
+}
+
+model StaffSchedule {
+  staffScheduleId  String   @id @default(cuid()) @map("staff_schedule_id") @db.VarChar(50)
+  employeeId       String   @map("employee_id") @db.VarChar(50)
+  classId          String?  @map("class_id") @db.VarChar(50)
+  workplaceId      String?  @map("workplace_id") @db.VarChar(50)
+  date             DateTime @db.Date
+  startTime        DateTime @map("start_time") @db.Time(0)
+  endTime          DateTime @map("end_time") @db.Time(0)
+  workType         String   @map("work_type") @db.VarChar(30)
+  status           String   @default("ASSIGNED") @db.VarChar(20)
+  assignedById     String?  @map("assigned_by") @db.VarChar(50)
+  assignmentSource String   @default("STANDARD") @map("assignment_source") @db.VarChar(30)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee   Employee  @relation("StaffEmployee", fields: [employeeId], references: [employeeId], onDelete: Restrict)
+  class      Class?    @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  assignedBy Employee? @relation("StaffAssigner", fields: [assignedById], references: [employeeId], onDelete: SetNull)
+
+  @@index([employeeId, date])
+  @@index([classId, date])
+  @@map("staff_schedules")
+}
+
+model Student {
+  studentId   String   @id @default(cuid()) @map("student_id") @db.VarChar(50)
+  studentCode String   @unique @map("student_code") @db.VarChar(30)
+  fullName    String   @map("full_name") @db.VarChar(100)
+  phone       String?  @db.VarChar(15)
+  email       String?  @db.VarChar(100)
+  level       String?  @db.VarChar(30)
+  rlTarget    Int?     @map("rl_target")
+  swTarget    Int?     @map("sw_target")
+  status      String   @default("Active") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  targets       StudentTarget[]
+  classStudents ClassStudent[]
+  results       StudentResult[]
+
+  @@map("students")
+}
+
+model StudentTarget {
+  studentTargetId String   @id @default(cuid()) @map("student_target_id") @db.VarChar(50)
+  studentId       String   @map("student_id") @db.VarChar(50)
+  courseId        String   @map("course_id") @db.VarChar(50)
+  targetType      String   @map("target_type") @db.VarChar(40)
+  targetValue     Decimal  @map("target_value") @db.Decimal(8, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  student Student @relation(fields: [studentId], references: [studentId], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [courseId], onDelete: Restrict)
+
+  @@unique([studentId, courseId, targetType])
+  @@index([courseId, targetType])
+  @@map("student_targets")
+}
+
+model ClassTargetRequirement {
+  classTargetRequirementId String   @id @default(cuid()) @map("class_target_requirement_id") @db.VarChar(50)
+  classId                  String   @map("class_id") @db.VarChar(50)
+  targetType               String   @map("target_type") @db.VarChar(40)
+  requiredTarget           Decimal  @map("required_target") @db.Decimal(8, 2)
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  class Class @relation(fields: [classId], references: [classId], onDelete: Cascade)
+
+  @@unique([classId, targetType])
+  @@map("class_target_requirements")
+}
+
+model ClassStudent {
+  classStudentId String    @id @default(cuid()) @map("class_student_id") @db.VarChar(50)
+  classId        String    @map("class_id") @db.VarChar(50)
+  studentId      String    @map("student_id") @db.VarChar(50)
+  status         String    @default("ACTIVE") @db.VarChar(20)
+  joinedAt       DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  inactiveReason String?   @map("inactive_reason") @db.VarChar(80)
+  inactivatedAt  DateTime? @map("inactivated_at") @db.Timestamptz(6)
+
+  class   Class   @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [studentId], onDelete: Restrict)
+
+  @@unique([classId, studentId])
+  @@index([studentId, status])
+  @@map("class_students")
+}
+
+model ClassAccessScope {
+  classAccessScopeId String   @id @default(cuid()) @map("class_access_scope_id") @db.VarChar(50)
+  employeeId         String   @map("employee_id") @db.VarChar(50)
+  classId            String   @map("class_id") @db.VarChar(50)
+  status             String   @default("ACTIVE") @db.VarChar(20)
+  source             String   @db.VarChar(30)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Restrict)
+  class    Class    @relation(fields: [classId], references: [classId], onDelete: Restrict)
+
+  @@unique([employeeId, classId])
+  @@index([classId, status])
+  @@map("class_access_scopes")
+}
+
+model Assignment {
+  assignmentId String   @id @default(cuid()) @map("assignment_id") @db.VarChar(50)
+  teacherId    String   @map("teacher_id") @db.VarChar(50)
+  classId      String   @map("class_id") @db.VarChar(50)
+  title        String   @db.VarChar(150)
+  description  String?  @db.Text
+  deadline     DateTime @db.Timestamptz(6)
+  status       String   @default("OPEN") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  teacher Employee        @relation("AssignmentTeacher", fields: [teacherId], references: [employeeId], onDelete: Restrict)
+  class   Class           @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  results StudentResult[]
+
+  @@index([classId, status])
+  @@map("assignments")
+}
+
+model Exam {
+  examId      String   @id @default(cuid()) @map("exam_id") @db.VarChar(50)
+  teacherId   String   @map("teacher_id") @db.VarChar(50)
+  classId     String   @map("class_id") @db.VarChar(50)
+  title       String   @db.VarChar(150)
+  description String?  @db.Text
+  duration    Int
+  examDate    DateTime @map("exam_date") @db.Timestamptz(6)
+  status      String   @default("SCHEDULED") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  teacher Employee        @relation("ExamTeacher", fields: [teacherId], references: [employeeId], onDelete: Restrict)
+  class   Class           @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  results StudentResult[]
+
+  @@index([classId, status])
+  @@map("exams")
+}
+
+model StudentResult {
+  studentResultId String   @id @default(cuid()) @map("student_result_id") @db.VarChar(50)
+  studentId       String   @map("student_id") @db.VarChar(50)
+  classId         String   @map("class_id") @db.VarChar(50)
+  assignmentId    String?  @map("assignment_id") @db.VarChar(50)
+  examId          String?  @map("exam_id") @db.VarChar(50)
+  score           Decimal  @db.Decimal(5, 2)
+  feedback        String?  @db.Text
+  evaluatedById   String   @map("evaluated_by") @db.VarChar(50)
+  evaluatedAt     DateTime @default(now()) @map("evaluated_at") @db.Timestamptz(6)
+
+  student     Student     @relation(fields: [studentId], references: [studentId], onDelete: Restrict)
+  class       Class       @relation(fields: [classId], references: [classId], onDelete: Restrict)
+  assignment  Assignment? @relation(fields: [assignmentId], references: [assignmentId], onDelete: Restrict)
+  exam        Exam?       @relation(fields: [examId], references: [examId], onDelete: Restrict)
+  evaluatedBy Employee    @relation("ResultEvaluator", fields: [evaluatedById], references: [employeeId], onDelete: Restrict)
+
+  @@index([studentId, classId])
+  @@index([assignmentId])
+  @@index([examId])
+  @@map("student_results")
+}
+
+model EmployeeSalary {
+  employeeSalaryId String   @id @default(cuid()) @map("employee_salary_id") @db.VarChar(50)
+  employeeId       String   @map("employee_id") @db.VarChar(50)
+  period           String   @db.VarChar(20)
+  totalSessions    Int      @default(0) @map("total_sessions")
+  totalHours       Decimal  @default(0) @map("total_hours") @db.Decimal(8, 2)
+  rate             Decimal  @default(0) @db.Decimal(12, 2)
+  amount           Decimal  @default(0) @db.Decimal(14, 2)
+  status           String   @default("DRAFT") @db.VarChar(20)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee Employee              @relation(fields: [employeeId], references: [employeeId], onDelete: Restrict)
+  detail   EmployeeSalaryDetail?
+
+  @@unique([employeeId, period])
+  @@map("employee_salaries")
+}
+
+model EmployeeSalaryDetail {
+  employeeSalaryId String   @id @map("employee_salary_id") @db.VarChar(50)
+  totalSessions    Int      @default(0) @map("total_sessions")
+  salaryPerHours   Decimal  @default(0) @map("salary_per_hours") @db.Decimal(14, 2)
+  totalHours       Decimal  @default(0) @map("total_hours") @db.Decimal(5, 2)
+  totalSalary      Decimal  @default(0) @map("total_salary") @db.Decimal(14, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employeeSalary EmployeeSalary @relation(fields: [employeeSalaryId], references: [employeeSalaryId], onDelete: Cascade)
+
+  @@map("employee_salary_details")
+}
+
+model StaffSalary {
+  staffSalaryId String   @id @default(cuid()) @map("staff_salary_id") @db.VarChar(50)
+  employeeId    String   @map("employee_id") @db.VarChar(50)
+  period        String   @db.VarChar(20)
+  totalShifts   Int      @default(0) @map("total_shifts")
+  totalHours    Decimal  @default(0) @map("total_hours") @db.Decimal(8, 2)
+  rate          Decimal  @default(0) @db.Decimal(12, 2)
+  amount        Decimal  @default(0) @db.Decimal(14, 2)
+  status        String   @default("DRAFT") @db.VarChar(20)
+  managedById   String?  @map("managed_by") @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employee  Employee  @relation("StaffSalaryEmployee", fields: [employeeId], references: [employeeId], onDelete: Restrict)
+  managedBy Employee? @relation("StaffSalaryManager", fields: [managedById], references: [employeeId], onDelete: SetNull)
+
+  @@unique([employeeId, period])
+  @@map("staff_salaries")
+}
+
+model AuditLog {
+  auditLogId String   @id @default(cuid()) @map("audit_log_id") @db.VarChar(50)
+  username   String?  @db.VarChar(50)
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.VarChar(50)
+  description String? @db.Text
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [username], references: [username], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([username, createdAt])
+  @@map("audit_logs")
+}

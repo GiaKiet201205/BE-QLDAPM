@@ -10,7 +10,6 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "username"),
         @UniqueConstraint(columnNames = "email")
 })
 @Data
@@ -20,21 +19,22 @@ import java.time.Instant;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, length = 50)
+    @Column(name = "username", nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
-    private String password; // luon luu duoi dang da hash (BCrypt)
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
 
     @Builder.Default
-    @Column(nullable = false)
-    private String role = "USER";
+    @Column(name = "role_id", nullable = false, length = 50)
+    private String roleId = "USER";
+
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private String status = "ACTIVE";
 
     @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
