@@ -34,14 +34,15 @@ public class AuthService {
         User user = User.builder()
                 .username(req.username())
                 .email(req.email())
-                .password(passwordEncoder.encode(req.password()))
-                .role("USER")
+                .passwordHash(passwordEncoder.encode(req.password()))
+                .roleId("USER")
+                .status("ACTIVE")
                 .build();
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRoleId());
+        return new AuthResponse(token, user.getUsername(), user.getRoleId());
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -52,7 +53,7 @@ public class AuthService {
         User user = userRepository.findByUsername(req.username())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Sai username hoac password"));
 
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRoleId());
+        return new AuthResponse(token, user.getUsername(), user.getRoleId());
     }
 }
