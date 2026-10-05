@@ -1,0 +1,23 @@
+{
+  "name": "iig-qlapm-database",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Prisma tooling for the Spring Boot backend database schema, migrations and seed data.",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.2"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+}
