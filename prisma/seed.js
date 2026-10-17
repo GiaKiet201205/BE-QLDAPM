@@ -34,6 +34,9 @@ async function main() {
     ["cs001", "cs001@iig.local", "CS", "cs-001", "CS-001"],
     ["cs002", "cs002@iig.local", "CS", "cs-002", "CS-002"],
     ["cs003", "cs003@iig.local", "CS", "cs-003", "CS-003"],
+    ["sale001", "sale001@iig.local", "SALE", "sale-001", "SALE-001"],
+    ["sale002", "sale002@iig.local", "SALE", "sale-002", "SALE-002"],
+    ["sale003", "sale003@iig.local", "SALE", "sale-003", "SALE-003"],
   ];
 
   for (const [username, email, roleId, employeeId, employeeCode] of userSeeds) {
@@ -59,6 +62,9 @@ async function main() {
         cs003: "Tran Quoc Huy",
         tc001: "Teaching Coordinator",
         cm001: "Center Manager",
+        sale001: "Nguyen Thu Ha",
+        sale002: "Le Minh Khoa",
+        sale003: "Pham Gia Han",
       };
 
       await prisma.employee.upsert({
