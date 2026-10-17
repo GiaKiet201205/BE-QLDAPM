@@ -67,7 +67,7 @@ public class AssignmentService {
         LocalDate start=access.monday(week);
         return db.queryForList(STAFF+
             "WHERE s.date BETWEEN ? AND ? AND u.role_id IN ('CS','SALE') " +
-            "AND (? IS NULL OR u.role_id=?) ORDER BY s.date,s.start_time",
+            "AND (CAST(? AS varchar) IS NULL OR u.role_id=?) ORDER BY s.date,s.start_time",
             start,start.plusDays(6),requested,requested);
     }
 

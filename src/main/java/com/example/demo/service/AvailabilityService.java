@@ -48,7 +48,7 @@ public class AvailabilityService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Cannot inspect this role");
         }
         String query = SELECT +
-            "WHERE (? IS NULL OR u.role_id=?) AND (? IS NULL OR upper(a.status)=?) " +
+            "WHERE (CAST(? AS varchar) IS NULL OR u.role_id=?) AND (CAST(? AS varchar) IS NULL OR upper(a.status)=?) " +
             "AND (a.available_date IS NULL OR a.available_date BETWEEN ? AND ?) " +
             (actor.role().equals("TC") ? "AND u.role_id='TEACHER' " :
              actor.role().equals("CM") ? "AND u.role_id IN ('SALE','CS') " : "") +
