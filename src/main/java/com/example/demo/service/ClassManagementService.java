@@ -44,6 +44,7 @@ public class ClassManagementService {
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbc;
+    private final ClassSessionService classSessionService;
 
     @Transactional(readOnly = true)
     public List<ClassSummaryResponse> listClasses(Authentication authentication) {
@@ -238,12 +239,13 @@ public class ClassManagementService {
                 .createdByUsername(actor.username())
                 .createdAt(Instant.now())
                 .build();
-        classRepository.save(classItem);
+        // Flush the new class before querying it from the JDBC-based planning service.
+        classRepository.saveAndFlush(classItem);
         replaceRequirements(classItem.getClassId(), request.targetRequirements());
 
         if ("CS".equals(actor.role())) {
             Employee employee = requireEmployee(actor.username());
-            classAccessScopeRepository.save(ClassAccessScope.builder()
+            classAccessScopeRepository.saveAndFlush(ClassAccessScope.builder()
                     .classAccessScopeId(newId("class-scope"))
                     .employeeId(employee.getEmployeeId())
                     .classId(classItem.getClassId())
@@ -251,6 +253,12 @@ public class ClassManagementService {
                     .source("CREATED_BY_CS")
                     .createdAt(Instant.now())
                     .build());
+        }
+
+        // Creating a class together with its timetable is atomic: if a planned
+        // session is invalid, the new class and its permissions are rolled back.
+        if (request.plannedSessions() != null && !request.plannedSessions().isEmpty()) {
+            classSessionService.replace(classItem.getClassId(), request.plannedSessions(), authentication);
         }
 
         audit(actor.username(), "CREATE_CLASS", classItem.getClassId(),
