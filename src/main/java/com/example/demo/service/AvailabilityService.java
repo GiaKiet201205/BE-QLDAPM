@@ -98,15 +98,40 @@ public class AvailabilityService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,"Availability not found"));
     }
 
-    private void assertNoOverlap(String employeeId, AvailabilityRequest body, String exceptId) {
-        Integer count=db.queryForObject(
-            "SELECT count(*) FROM availabilities WHERE employee_id=? AND availability_id<>? " +
-            "AND (available_date=? OR (available_date IS NULL AND ? IS NULL AND lower(day_of_week)=?) " +
-            "OR (available_date IS NULL AND ? IS NOT NULL AND lower(day_of_week)=?)) " +
-            "AND start_time<? AND end_time>?",
-            Integer.class,employeeId,exceptId,body.availableDate(),body.availableDate(),day(body),
-            body.availableDate(),day(body),body.endTime(),body.startTime());
-        if (count!=null && count>0) throw new ApiException(HttpStatus.CONFLICT,"Availability time overlaps existing slot");
+    private void assertNoOverlap(
+            String employeeId,
+            AvailabilityRequest body,
+            String exceptId
+    ) {
+        Integer count = db.queryForObject(
+            "SELECT count(*) " +
+            "FROM availabilities " +
+            "WHERE employee_id = ? " +
+            "AND availability_id <> ? " +
+            "AND ( " +
+            "    available_date = ? " +
+            "    OR ( " +
+            "        available_date IS NULL " +
+            "        AND lower(day_of_week) = ? " +
+            "    ) " +
+            ") " +
+            "AND start_time < ? " +
+            "AND end_time > ?",
+            Integer.class,
+            employeeId,
+            exceptId,
+            body.availableDate(),
+            day(body),
+            body.endTime(),
+            body.startTime()
+        );
+
+        if (count != null && count > 0) {
+            throw new ApiException(
+                HttpStatus.CONFLICT,
+                "Availability time overlaps existing slot"
+            );
+        }
     }
 
     @Transactional
