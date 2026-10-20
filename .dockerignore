@@ -1,0 +1,11 @@
+# Do not copy private/local configuration or local build results into images.
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+target
+node_modules
+*.log
+.DS_Store

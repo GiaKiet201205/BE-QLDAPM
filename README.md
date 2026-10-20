@@ -1,30 +1,53 @@
-# Backend - Spring Boot + PostgreSQL + JWT
+# Backend IIG — Spring Boot + PostgreSQL + JWT
 
-## Yêu cầu
-- Java 17+
-- Maven 3.9+
-- Docker (để chạy PostgreSQL nhanh) hoặc PostgreSQL cài sẵn
+## Chạy toàn bộ BE bằng Docker (khuyến nghị)
 
-## Chạy database (PostgreSQL) bằng Docker
-```bash
-docker compose up -d
+Máy mới chỉ cần **Git và Docker Desktop (Docker Compose v2)**. Không cần cài PostgreSQL, Node.js, Prisma, Java hoặc Maven ở máy host.
+
+```powershell
+git clone https://github.com/Santadura/BE-QLDAPM-clone.git
+cd BE-QLDAPM-clone
+# Khi cấu hình chưa được merge vào main: git switch luan
+docker compose up -d --build
 ```
-Database sẽ chạy ở `localhost:5432`, user/pass mặc định: `postgres` / `postgres`, database `demo_db`.
 
-> Nếu bạn muốn dùng MySQL thay vì PostgreSQL: mở `pom.xml` bật dependency `mysql-connector-j` (đang bị comment), và sửa `spring.datasource.url` trong `application.yml` thành `jdbc:mysql://localhost:3306/demo_db`.
+Lần chạy đầu sẽ tự động thực hiện đúng thứ tự:
+1. PostgreSQL 16 tạo database `qlapm_db` và chờ healthcheck.
+2. Service `db-init` chạy `prisma migrate deploy`, sau đó **chỉ seed khi database trống**. Service này kết thúc thành công.
+3. Service `backend` chạy Spring Boot (Java 17) trên `http://localhost:8080`.
 
-## Cấu hình biến môi trường
-Copy `.env.example` thành `.env` (hoặc set trực tiếp trong IDE Run Configuration):
-```bash
-cp .env.example .env
+Dữ liệu PostgreSQL nằm trong Docker volume `qlapm_pgdata`; chạy lại `docker compose up -d --build` không xóa dữ liệu hoặc ghi đè dữ liệu từ seed. Nếu database đã có dữ liệu, bước seed demo sẽ bị bỏ qua.
+
+Kiểm tra trạng thái và log:
+
+```powershell
+docker compose ps -a
+docker compose logs --tail=100 db-init
+docker compose logs -f backend
 ```
-Nhớ đổi `JWT_SECRET` thành chuỗi random dài khi deploy thật.
 
-## Chạy ứng dụng
-```bash
+Dừng container nhưng giữ dữ liệu: `docker compose down`.
+
+**Cảnh báo:** `docker compose down -v` **xóa vĩnh viễn toàn bộ database local** trong volume. Chỉ dùng khi thực sự muốn làm lại dữ liệu từ đầu.
+
+Cấu hình Docker này dành cho **development**: PostgreSQL mở cổng 5432, user/password mặc định `postgres/postgres`, dữ liệu mẫu có mật khẩu thử nghiệm. Không deploy nguyên cấu hình này lên production. Đổi `JWT_SECRET` và database credentials trước khi triển khai thật.
+
+**Lưu ý:** Nếu port 5432 hoặc 8080 đang bị chiếm (PostgreSQL/Spring Boot trên host), hãy dừng tiến trình cũ trước khi chạy Compose. Container kết nối DB qua hostname `postgres`, không phải `localhost`.
+
+## Chạy BE trực tiếp (để debug ngoài Docker)
+
+Yêu cầu: Java 17, Maven 3.9+, Node.js 20+, Docker hoặc PostgreSQL cài sẵn.
+
+```powershell
+docker compose up -d postgres
+Copy-Item .env.example .env
+npm ci
+npx prisma migrate deploy
+npm run db:seed
 mvn spring-boot:run
 ```
-Server chạy ở `http://localhost:8080`.
+
+Ở cách chạy thủ công, Spring Boot dùng cấu hình trong `.env` và database tại `localhost:5432`. Lệnh `npm run db:seed` **chạy trực tiếp** và có thể cập nhật dữ liệu mẫu; chỉ chạy khi thật sự cần.
 
 ## Các API có sẵn
 

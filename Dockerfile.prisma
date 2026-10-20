@@ -1,0 +1,14 @@
+# Prisma is used only for migrations and local demo seed data.
+FROM node:20-alpine
+RUN apk add --no-cache openssl
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+COPY scripts/seed-if-empty.js ./scripts/seed-if-empty.js
+
+CMD ["sh", "-c", "npx prisma migrate deploy && node scripts/seed-if-empty.js"]
