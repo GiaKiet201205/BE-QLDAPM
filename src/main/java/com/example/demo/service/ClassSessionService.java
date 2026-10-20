@@ -96,6 +96,10 @@ public class ClassSessionService {
             throw new ApiException(HttpStatus.FORBIDDEN, "No access to class planned sessions");
         }
         requirePlannedSessionMigration();
+        return readSessions(classId);
+    }
+
+    private List<Map<String,Object>> readSessions(String classId) {
         return db.queryForList(
             "SELECT class_session_id AS id, class_id AS \"classId\", date, " +
             "start_time AS \"startTime\", end_time AS \"endTime\", status " +
@@ -208,7 +212,10 @@ public class ClassSessionService {
                   input.reason().trim() + ": " + oldDate + " " + oldStart + "-" + oldEnd +
                   (makeUp ? " -> " + input.newDate() + " " + input.newStartTime() +
                   "-" + input.newEndTime() : " -> CANCELLED"));
-        return sessions(classId, auth);
+        // Authorization is evaluated at transaction entry. A reschedule may
+        // cancel the caller's only support shift and must not invalidate the
+        // already-authorized transaction while returning its result.
+        return readSessions(classId);
     }
 
     @Transactional
@@ -298,6 +305,9 @@ public class ClassSessionService {
                 "VALUES (?,?, 'UPDATE_CLASS_PLAN','CLASS',?,?)",
                 UUID.randomUUID().toString(), actor.username(), classId,
                 "Updated planned lessons: " + desired.size());
-        return sessions(classId, auth);
+        // Authorization is evaluated at transaction entry. A reschedule may
+        // cancel the caller's only support shift and must not invalidate the
+        // already-authorized transaction while returning its result.
+        return readSessions(classId);
     }
 }
