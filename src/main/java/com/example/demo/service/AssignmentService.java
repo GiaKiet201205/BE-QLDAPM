@@ -106,6 +106,14 @@ public class AssignmentService {
         if (data.date().isBefore(start)||data.date().isAfter(end)) {
             throw new ApiException(HttpStatus.BAD_REQUEST,"Teaching date outside class period");
         }
+        Integer planned=db.queryForObject(
+            "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+            "AND start_time=? AND end_time=? AND status='PLANNED'",
+            Integer.class,data.classId(),data.date(),data.startTime(),data.endTime());
+        if (planned == null || planned == 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "TC must assign a teacher to an existing planned class session, without changing its time");
+        }
         if (!access.hasApprovedAvailability(data.teacherId(),data.date(),
                 data.startTime(),data.endTime(),data.campus())) {
             throw new ApiException(HttpStatus.CONFLICT,"No approved availability covering this teaching session");
@@ -166,6 +174,20 @@ public class AssignmentService {
         var actor=access.requireRole("TC");
         Map<String,Object> old=teacherSlot(id);
         access.lockEmployee((String)old.get("teacherId"));
+        // Do not leave an active class without a teacher for one of its planned lessons.
+        Integer running=db.queryForObject(
+            "SELECT count(*) FROM classes WHERE class_id=? AND status='RUNNING'",
+            Integer.class,old.get("classId"));
+        if (running != null && running > 0 && "ASSIGNED".equals(old.get("status"))) {
+            Integer alternatives=db.queryForObject(
+                "SELECT count(*) FROM teaching_schedules WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='ASSIGNED' AND teaching_schedule_id<>?",
+                Integer.class,old.get("classId"),old.get("date"),old.get("startTime"),old.get("endTime"),id);
+            if (alternatives == null || alternatives == 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Reassign another teacher before cancelling the only teacher for a running class session");
+            }
+        }
         db.update("UPDATE teaching_schedules SET status='CANCELLED' WHERE teaching_schedule_id=?",id);
         access.audit(actor,"CANCEL_TEACHING_SCHEDULE","TEACHING_SCHEDULE",id);
     }
@@ -190,6 +212,14 @@ public class AssignmentService {
                 (rs,n)->rs.getString(1),data.classId());
             if (statuses.isEmpty()||!List.of("READY","RUNNING").contains(statuses.get(0))) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,"Class must be READY or RUNNING");
+            }
+            Integer planned=db.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='PLANNED'",
+                Integer.class,data.classId(),data.date(),data.startTime(),data.endTime());
+            if (planned == null || planned == 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "CS support must match a planned class session exactly");
             }
         }
         Integer conflict=db.queryForObject(
