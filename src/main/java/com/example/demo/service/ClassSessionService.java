@@ -43,6 +43,16 @@ public class ClassSessionService {
         return new Identity(auth.getName(), role);
     }
 
+    private void requirePlannedSessionMigration() {
+        Boolean installed = db.queryForObject(
+                "SELECT to_regclass('public.class_sessions') IS NOT NULL", Boolean.class);
+        if (!Boolean.TRUE.equals(installed)) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Database is missing class_sessions. Run npm run db:migrate:deploy " +
+                    "against the PostgreSQL database used by Spring Boot, then restart the API.");
+        }
+    }
+
     private boolean manages(String classId, Identity actor) {
         if ("ADMIN".equals(actor.role())) return true;
         if (!"CS".equals(actor.role())) return false;
@@ -85,6 +95,7 @@ public class ClassSessionService {
         if (!canView(classId, actor)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "No access to class planned sessions");
         }
+        requirePlannedSessionMigration();
         return db.queryForList(
             "SELECT class_session_id AS id, class_id AS \"classId\", date, " +
             "start_time AS \"startTime\", end_time AS \"endTime\", status " +
@@ -100,6 +111,7 @@ public class ClassSessionService {
             throw new ApiException(HttpStatus.FORBIDDEN,
                     "Only Admin or managing CS can reschedule class sessions");
         }
+        requirePlannedSessionMigration();
         if (input == null || input.originalSessionId() == null ||
                 input.reason() == null || input.reason().trim().length() < 5) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
@@ -205,6 +217,7 @@ public class ClassSessionService {
         if (!manages(classId, actor)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only Admin or managing CS can plan class sessions");
         }
+        requirePlannedSessionMigration();
         List<Map<String,Object>> classes = db.queryForList(
             "SELECT class_id, start_date, end_date, status FROM classes WHERE class_id=? FOR UPDATE", classId);
         if (classes.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "Class not found");
