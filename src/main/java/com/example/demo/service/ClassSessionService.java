@@ -65,7 +65,7 @@ public class ClassSessionService {
         }
         // Exclude student roster and sensitive student details.
         return db.queryForList(
-            "SELECT c.class_id AS \"classId\", c.class_code AS \"classCode\", " +
+            "SELECT c.class_id AS \"classId\", c.course_id AS \"courseId\", c.class_code AS \"classCode\", " +
             "c.name, c.start_date AS \"startDate\", c.end_date AS \"endDate\", " +
             "c.status, cr.name AS \"courseName\" " +
             "FROM classes c JOIN courses cr ON cr.course_id=c.course_id " +
