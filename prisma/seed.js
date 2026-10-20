@@ -226,6 +226,26 @@ async function main() {
     },
   });
 
+  // Planned sessions exist independently of staffing, including on a fresh DB
+  // where migrations run before the seed creates the teaching schedule.
+  const plannedSeed = [
+    ["seed-session-0001", "class-0001", "2026-10-06", "18:30", "20:30"],
+    ["seed-session-0002", "class-0002", "2026-11-02", "18:00", "20:00"],
+    ["seed-session-0006", "class-0006", "2026-11-03", "18:00", "20:00"],
+  ];
+  for (const [classSessionId, classId, date, start, end] of plannedSeed) {
+    await prisma.classSession.upsert({
+      where: { classSessionId },
+      update: {},
+      create: {
+        classSessionId, classId, date: new Date(date),
+        startTime: new Date(`1970-01-01T${start}:00Z`),
+        endTime: new Date(`1970-01-01T${end}:00Z`),
+        status: "PLANNED",
+      },
+    });
+  }
+
   // --- PHẦN THÊM DỮ LIỆU TỰ ĐỘNG ---
 
   // 1. AppFunction
@@ -446,6 +466,19 @@ async function main() {
         startTime: new Date("1970-01-01T13:00:00Z"),
         endTime: new Date("1970-01-01T15:00:00Z"),
         status: "ASSIGNED",
+      },
+    });
+
+    await prisma.classSession.upsert({
+      where: { classSessionId: `auto-session-${i}` },
+      update: {},
+      create: {
+        classSessionId: `auto-session-${i}`,
+        classId: autoClassId,
+        date: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
+        status: "PLANNED",
       },
     });
 
