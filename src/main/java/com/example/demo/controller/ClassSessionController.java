@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.service.ClassSessionService;
 import com.example.demo.service.ClassSessionService.PlannedSessionInput;
+import com.example.demo.service.ClassSessionService.RescheduleRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,14 @@ public class ClassSessionController {
     @GetMapping("/classes/{classId}/planned-sessions")
     public List<Map<String,Object>> get(@PathVariable String classId, Authentication authentication) {
         return sessions.sessions(classId, authentication);
+    }
+
+    @PostMapping("/classes/{classId}/reschedule")
+    public List<Map<String,Object>> reschedule(
+            @PathVariable String classId,
+            @RequestBody RescheduleRequest body,
+            Authentication authentication) {
+        return sessions.reschedule(classId, body, authentication);
     }
 
     @PutMapping("/classes/{classId}/planned-sessions")
