@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.dto.SchedulingDtos.StaffRequest;
 import com.example.demo.dto.SchedulingDtos.TeachingRequest;
+import com.example.demo.dto.SchedulingDtos.TeachingBatchRequest;
+import com.example.demo.dto.SchedulingDtos.SupportBatchRequest;
 import com.example.demo.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -132,6 +134,60 @@ public class AssignmentService {
 
     private void lockClass(String id) {
         db.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",String.class,id);
+    }
+
+    private List<Map<String,Object>> requireBatchSessions(String classId, List<String> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty() || sessionIds.size() > 50
+                || sessionIds.size() != sessionIds.stream().distinct().count()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Choose 1-50 different planned sessions");
+        }
+        List<Map<String,Object>> sessions = new java.util.ArrayList<>();
+        for (String sessionId : sessionIds) {
+            List<Map<String,Object>> rows = db.queryForList(
+                "SELECT date,start_time,end_time FROM class_sessions " +
+                "WHERE class_session_id=? AND class_id=? AND status='PLANNED'",
+                sessionId, classId);
+            if (rows.isEmpty()) {
+                throw new ApiException(HttpStatus.NOT_FOUND,
+                    "A selected session no longer exists in this class plan");
+            }
+            sessions.add(rows.get(0));
+        }
+        return sessions;
+    }
+
+    @Transactional
+    public List<Map<String,Object>> assignTeacherBatch(TeachingBatchRequest data) {
+        access.requireRole("TC");
+        var sessions = requireBatchSessions(data.classId(), data.sessionIds());
+        List<Map<String,Object>> created = new java.util.ArrayList<>();
+        for (Map<String,Object> slot : sessions) {
+            created.add(assignTeacher(new TeachingRequest(
+                data.teacherId(), data.classId(),
+                ((java.sql.Date)slot.get("date")).toLocalDate(),
+                java.time.LocalTime.parse(slot.get("start_time").toString()),
+                java.time.LocalTime.parse(slot.get("end_time").toString()),
+                data.campus(), null
+            )));
+        }
+        return created;
+    }
+
+    @Transactional
+    public List<Map<String,Object>> assignSupportBatch(SupportBatchRequest data) {
+        access.requireRole("CM");
+        var sessions = requireBatchSessions(data.classId(), data.sessionIds());
+        List<Map<String,Object>> created = new java.util.ArrayList<>();
+        for (Map<String,Object> slot : sessions) {
+            created.add(assignStaff(new StaffRequest(
+                data.employeeId(), "CS", data.workplaceId(), data.classId(),
+                ((java.sql.Date)slot.get("date")).toLocalDate(),
+                java.time.LocalTime.parse(slot.get("start_time").toString()),
+                java.time.LocalTime.parse(slot.get("end_time").toString()),
+                "CLASS_SUPPORT"
+            )));
+        }
+        return created;
     }
 
     @Transactional
