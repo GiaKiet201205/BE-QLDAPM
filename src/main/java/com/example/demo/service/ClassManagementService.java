@@ -411,9 +411,11 @@ public class ClassManagementService {
         if ("COMPLETED".equals(nextStatus)) {
             Integer remainingLessons = jdbc.queryForObject(
                     "SELECT count(*) FROM class_sessions WHERE class_id=? " +
-                    "AND status='PLANNED' AND date >= ?",
+                    "AND status='PLANNED' AND (date > ? OR (date = ? AND end_time > ?))",
                     Integer.class, classId,
-                    LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
+                    LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),
+                    LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),
+                    java.time.LocalTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
             if (remainingLessons != null && remainingLessons > 0) {
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Cannot complete a class while today or future planned lessons remain. " +
