@@ -100,6 +100,10 @@ public class ClassSessionService {
         if (input == null || input.size() > 400) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Plan must contain at most 400 lessons");
         }
+        if ("READY".equals(row.get("status")) && input.isEmpty()) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "A Ready class must retain at least one planned lesson");
+        }
         LocalDate start = ((Date)row.get("start_date")).toLocalDate();
         LocalDate end = ((Date)row.get("end_date")).toLocalDate();
         List<Slot> desired = new ArrayList<>();
