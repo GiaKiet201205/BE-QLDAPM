@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,13 @@ public class ClassSessionService {
     private final JdbcTemplate db;
 
     public record PlannedSessionInput(LocalDate date, LocalTime startTime, LocalTime endTime) {}
+    public record RescheduleRequest(
+        String originalSessionId,
+        LocalDate newDate,
+        LocalTime newStartTime,
+        LocalTime newEndTime,
+        String reason
+    ) {}
     private record Slot(LocalDate date, LocalTime start, LocalTime end) {}
     private record Identity(String username, String role) {}
 
@@ -82,6 +90,100 @@ public class ClassSessionService {
             "start_time AS \"startTime\", end_time AS \"endTime\", status " +
             "FROM class_sessions WHERE class_id=? ORDER BY date,start_time",
             classId);
+    }
+
+    @Transactional
+    public List<Map<String,Object>> reschedule(
+            String classId, RescheduleRequest input, Authentication auth) {
+        Identity actor = identity(auth);
+        if (!manages(classId, actor)) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Only Admin or managing CS can reschedule class sessions");
+        }
+        if (input == null || input.originalSessionId() == null ||
+                input.reason() == null || input.reason().trim().length() < 5) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Original lesson and a reason of at least five characters are required");
+        }
+
+        // Serialize with staff assignment, timetable updates and class state transitions.
+        List<Map<String,Object>> classes = db.queryForList(
+            "SELECT start_date,end_date,status FROM classes WHERE class_id=? FOR UPDATE",
+            classId);
+        if (classes.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "Class not found");
+        Map<String,Object> cls = classes.get(0);
+        if (!"RUNNING".equals(cls.get("status"))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Use the planned timetable editor before the class starts");
+        }
+
+        List<Map<String,Object>> oldRows = db.queryForList(
+            "SELECT date,start_time,end_time FROM class_sessions " +
+            "WHERE class_session_id=? AND class_id=? AND status='PLANNED' FOR UPDATE",
+            input.originalSessionId(), classId);
+        if (oldRows.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Active planned lesson not found");
+        }
+        Map<String,Object> old = oldRows.get(0);
+        LocalDate oldDate = ((Date)old.get("date")).toLocalDate();
+        LocalTime oldStart = LocalTime.parse(old.get("start_time").toString());
+        LocalTime oldEnd = LocalTime.parse(old.get("end_time").toString());
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (!oldDate.isAfter(today)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Only future lessons may be cancelled or rescheduled");
+        }
+
+        boolean makeUp = input.newDate() != null;
+        if (makeUp != (input.newStartTime() != null && input.newEndTime() != null)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Provide a complete replacement date/time, or leave all three blank for cancellation");
+        }
+        if (makeUp) {
+            LocalDate start = ((Date)cls.get("start_date")).toLocalDate();
+            LocalDate end = ((Date)cls.get("end_date")).toLocalDate();
+            if (!input.newDate().isAfter(today) ||
+                    input.newDate().isBefore(start) || input.newDate().isAfter(end) ||
+                    !input.newEndTime().isAfter(input.newStartTime())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "Make-up lesson must be in the future and within class date range");
+            }
+            Integer clash = db.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND status='PLANNED' " +
+                "AND class_session_id<>? AND date=? AND start_time<? AND end_time>?",
+                Integer.class, classId, input.originalSessionId(), input.newDate(),
+                input.newEndTime(), input.newStartTime());
+            if (clash != null && clash > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Make-up lesson overlaps another planned class lesson");
+            }
+        }
+
+        // Cancel only assignments belonging to this one lesson, keeping payroll/audit history.
+        db.update("UPDATE teaching_schedules SET status='CANCELLED' " +
+                  "WHERE class_id=? AND date=? AND start_time=? AND end_time=? AND status='ASSIGNED'",
+                  classId, oldDate, oldStart, oldEnd);
+        db.update("UPDATE staff_schedules SET status='CANCELLED' " +
+                  "WHERE class_id=? AND work_type='CLASS_SUPPORT' " +
+                  "AND date=? AND start_time=? AND end_time=? AND status='ASSIGNED'",
+                  classId, oldDate, oldStart, oldEnd);
+        db.update("UPDATE class_sessions SET status='CANCELLED' WHERE class_session_id=?",
+                  input.originalSessionId());
+        if (makeUp) {
+            db.update("INSERT INTO class_sessions " +
+                      "(class_session_id,class_id,date,start_time,end_time,status) " +
+                      "VALUES (?,?,?,?,?,'PLANNED')",
+                      UUID.randomUUID().toString(), classId, input.newDate(),
+                      input.newStartTime(), input.newEndTime());
+        }
+        db.update("INSERT INTO audit_logs " +
+                  "(audit_log_id,username,action,entity_type,entity_id,description) " +
+                  "VALUES (?,?,'RESCHEDULE_CLASS_LESSON','CLASS',?,?)",
+                  UUID.randomUUID().toString(), actor.username(), classId,
+                  input.reason().trim() + ": " + oldDate + " " + oldStart + "-" + oldEnd +
+                  (makeUp ? " -> " + input.newDate() + " " + input.newStartTime() +
+                  "-" + input.newEndTime() : " -> CANCELLED"));
+        return sessions(classId, auth);
     }
 
     @Transactional
