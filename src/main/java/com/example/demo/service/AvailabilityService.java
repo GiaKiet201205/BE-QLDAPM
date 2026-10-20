@@ -109,7 +109,7 @@ public class AvailabilityService {
             "WHERE employee_id = ? " +
             "AND availability_id <> ? " +
             "AND ( " +
-            "    (? IS NULL AND lower(day_of_week) = ?) " +
+            "    (CAST(? AS date) IS NULL AND lower(day_of_week) = ?) " +
             "    OR available_date = ? " +
             "    OR (available_date IS NULL AND lower(day_of_week) = ?) " +
             ") " +
