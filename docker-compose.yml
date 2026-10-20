@@ -1,3 +1,5 @@
+# Local development: one command starts PostgreSQL, runs Prisma migrations,
+# seeds only a fresh database, and launches the Spring Boot API.
 services:
   postgres:
     image: postgres:16-alpine
@@ -16,6 +18,35 @@ services:
       retries: 10
     volumes:
       - qlapm_pgdata:/var/lib/postgresql/data
+
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.prisma
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/qlapm_db?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/qlapm_db?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/qlapm_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-key-at-least-256-bits-please}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   qlapm_pgdata:
