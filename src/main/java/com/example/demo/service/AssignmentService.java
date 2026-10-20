@@ -161,6 +161,19 @@ public class AssignmentService {
         List<String> cls=java.util.stream.Stream.of((String)old.get("classId"),data.classId())
             .distinct().sorted().toList();
         cls.forEach(this::lockClass);
+        // Once Running, the timetable is fixed; changing the teacher is allowed
+        // but moving a session requires a separately approved timetable change.
+        Integer running=db.queryForObject(
+            "SELECT count(*) FROM classes WHERE class_id=? AND status='RUNNING'",
+            Integer.class,old.get("classId"));
+        if (running != null && running > 0 &&
+            (!old.get("classId").equals(data.classId()) ||
+             !old.get("date").toString().equals(data.date().toString()) ||
+             !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+             !old.get("endTime").toString().startsWith(data.endTime().toString()))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class timetable is locked; reassign the teacher without changing the slot");
+        }
         validateTeacher(data,id);
         db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=? " +
             "WHERE teaching_schedule_id=?",data.teacherId(),data.classId(),data.date(),
