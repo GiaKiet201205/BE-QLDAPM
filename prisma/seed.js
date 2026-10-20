@@ -234,14 +234,19 @@ async function main() {
     ["seed-session-0006", "class-0006", "2026-11-03", "18:00", "20:00"],
   ];
   for (const [classSessionId, classId, date, start, end] of plannedSeed) {
+    const slotDate = new Date(date);
+    const slotStart = new Date(`1970-01-01T${start}:00Z`);
+    const slotEnd = new Date(`1970-01-01T${end}:00Z`);
     await prisma.classSession.upsert({
-      where: { classSessionId },
+      where: {
+        classId_date_startTime_endTime: {
+          classId, date: slotDate, startTime: slotStart, endTime: slotEnd,
+        },
+      },
       update: {},
       create: {
-        classSessionId, classId, date: new Date(date),
-        startTime: new Date(`1970-01-01T${start}:00Z`),
-        endTime: new Date(`1970-01-01T${end}:00Z`),
-        status: "PLANNED",
+        classSessionId, classId, date: slotDate,
+        startTime: slotStart, endTime: slotEnd, status: "PLANNED",
       },
     });
   }
