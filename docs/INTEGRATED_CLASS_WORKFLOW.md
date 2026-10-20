@@ -75,3 +75,54 @@ npm run dev
 The older schema's assigned TeachingSchedule slots are copied into `class_sessions` by the migration, so previously staffed sessions remain visible without rewriting the old staff assignments.
 
 No browser-driven end-to-end run is claimed by this document; verify the scenarios above against local PostgreSQL.
+
+## Troubleshooting: "bad SQL grammar FROM class_sessions"
+
+This usually means the **running Spring Boot API points at a PostgreSQL database
+where the new Prisma migration has not been applied**. The repository containing
+the code does not automatically change an existing database when Spring Boot is
+started locally.
+
+From the **BE clone root**, with the same `DATABASE_URL` pointing to the
+database configured in `DB_URL`:
+
+```powershell
+npm ci
+npx prisma migrate status
+npm run db:migrate:deploy
+npx prisma migrate status
+```
+
+Confirm `20261020235000_class_sessions` is applied, then restart Spring Boot.
+If the API uses Docker Compose instead, make sure `db-init` completed successfully
+against the Compose PostgreSQL volume (e.g. `docker compose up --build -d`).
+Do not run `prisma migrate reset` or delete a volume containing important data.
+
+The BE now reports a friendly 503 with migration instructions when this table is
+missing, rather than surfacing a raw SQL grammar exception.
+
+## Creating a class with lessons
+
+`POST /api/classes` accepts the existing class fields plus an optional
+`plannedSessions` array:
+
+```json
+{
+  "courseId": "course-ielts",
+  "classCode": "IELTS-DEMO-01",
+  "name": "IELTS Evening",
+  "startDate": "2026-11-01",
+  "endDate": "2026-12-01",
+  "targetRequirements": [
+    {"targetType": "OVERALL_BAND", "requiredTarget": 7.0}
+  ],
+  "plannedSessions": [
+    {"date": "2026-11-02", "startTime": "18:00", "endTime": "20:00"}
+  ]
+}
+```
+
+The entire operation is transactional: if a planned session fails validation,
+the class and its associated scope/targets are rolled back. Omit
+`plannedSessions` to create a DRAFT class and add lessons later from Schedule.
+Lesson planning cannot be omitted when transitioning to READY.
