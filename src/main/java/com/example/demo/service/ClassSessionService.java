@@ -243,11 +243,12 @@ public class ClassSessionService {
         }
 
         List<Map<String,Object>> previous = db.queryForList(
-            "SELECT class_session_id, date,start_time,end_time FROM class_sessions WHERE class_id=? FOR UPDATE", classId);
+            "SELECT class_session_id, date,start_time,end_time FROM class_sessions " +
+            "WHERE class_id=? AND status='PLANNED' FOR UPDATE", classId);
         for (Map<String,Object> item : previous) {
             Slot slot = new Slot(((Date)item.get("date")).toLocalDate(),
                     LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString()));
-            if (!desired.contains(slot)) db.update("DELETE FROM class_sessions WHERE class_session_id=?",
+            if (!desired.contains(slot)) db.update("DELETE FROM class_sessions WHERE class_session_id=? AND status='PLANNED'",
                     item.get("class_session_id"));
         }
         Set<Slot> old = previous.stream()
@@ -256,9 +257,15 @@ public class ClassSessionService {
                 .collect(Collectors.toSet());
         for (Slot slot : desired) {
             if (!old.contains(slot)) {
-                db.update("INSERT INTO class_sessions (class_session_id,class_id,date,start_time,end_time,status) " +
-                        "VALUES (?,?,?,?,?,'PLANNED')",
-                        UUID.randomUUID().toString(), classId, slot.date(), slot.start(), slot.end());
+                int revived = db.update(
+                        "UPDATE class_sessions SET status='PLANNED' " +
+                        "WHERE class_id=? AND date=? AND start_time=? AND end_time=? AND status='CANCELLED'",
+                        classId, slot.date(), slot.start(), slot.end());
+                if (revived == 0) {
+                    db.update("INSERT INTO class_sessions (class_session_id,class_id,date,start_time,end_time,status) " +
+                            "VALUES (?,?,?,?,?,'PLANNED')",
+                            UUID.randomUUID().toString(), classId, slot.date(), slot.start(), slot.end());
+                }
             }
         }
         db.update("INSERT INTO audit_logs (audit_log_id,username,action,entity_type,entity_id,description) " +
