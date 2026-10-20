@@ -267,6 +267,8 @@ public class ClassManagementService {
         AcademicClass classItem = requireClass(classId);
         Actor actor = actor(authentication);
         requireManageAccess(classItem, actor);
+        jdbc.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
+                String.class, classId);
         if ("CLOSED".equalsIgnoreCase(classItem.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Closed classes are read-only");
         }
@@ -343,6 +345,8 @@ public class ClassManagementService {
         AcademicClass classItem = requireClass(classId);
         Actor actor = actor(authentication);
         requireManageAccess(classItem, actor);
+        jdbc.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
+                String.class, classId);
 
         String nextStatus = request.status().trim().toUpperCase();
         int currentIndex = CLASS_STATUSES.indexOf(classItem.getStatus());
