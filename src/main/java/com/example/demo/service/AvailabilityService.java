@@ -109,17 +109,17 @@ public class AvailabilityService {
             "WHERE employee_id = ? " +
             "AND availability_id <> ? " +
             "AND ( " +
-            "    available_date = ? " +
-            "    OR ( " +
-            "        available_date IS NULL " +
-            "        AND lower(day_of_week) = ? " +
-            "    ) " +
+            "    (? IS NULL AND lower(day_of_week) = ?) " +
+            "    OR available_date = ? " +
+            "    OR (available_date IS NULL AND lower(day_of_week) = ?) " +
             ") " +
             "AND start_time < ? " +
             "AND end_time > ?",
             Integer.class,
             employeeId,
             exceptId,
+            body.availableDate(),
+            day(body),
             body.availableDate(),
             day(body),
             body.endTime(),
