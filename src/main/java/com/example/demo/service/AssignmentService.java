@@ -302,6 +302,10 @@ public class AssignmentService {
     public Map<String,Object> assignStaff(StaffRequest data) {
         var actor=access.requireRole("CM");
         access.lockEmployee(data.employeeId());
+        if ("CS".equalsIgnoreCase(data.staffRole()) &&
+            "CLASS_SUPPORT".equals(data.workType()) && data.classId()!=null) {
+            lockClass(data.classId());
+        }
         validateStaff(data,"");
         String id=UUID.randomUUID().toString();
         String classId="CS".equalsIgnoreCase(data.staffRole())&&"CLASS_SUPPORT".equals(data.workType())
@@ -321,6 +325,8 @@ public class AssignmentService {
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
         java.util.stream.Stream.of((String)old.get("employeeId"),data.employeeId())
             .distinct().sorted().forEach(access::lockEmployee);
+        java.util.stream.Stream.of((String)old.get("classId"),data.classId())
+            .filter(java.util.Objects::nonNull).distinct().sorted().forEach(this::lockClass);
         validateStaff(data,id);
         String classId="CS".equalsIgnoreCase(data.staffRole())&&"CLASS_SUPPORT".equals(data.workType())
             ?data.classId():null;
