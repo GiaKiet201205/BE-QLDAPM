@@ -226,11 +226,29 @@ async function main() {
     },
   });
 
+  // The seeded RUNNING TOEFL class must have at least one assigned Teacher.
+  // These dates are historical sample data; new real assignments use approved availability.
+  await prisma.teachingSchedule.upsert({
+    where: { teachingScheduleId: "teaching-003" },
+    update: {},
+    create: {
+      teachingScheduleId: "teaching-003",
+      teacherId: "teacher-002",
+      classId: "class-0003",
+      date: new Date("2026-11-10"),
+      startTime: new Date("1970-01-01T18:00:00Z"),
+      endTime: new Date("1970-01-01T20:00:00Z"),
+      status: "ASSIGNED",
+      assignedById: "emp-tc-001",
+    },
+  });
+
   // Planned sessions exist independently of staffing, including on a fresh DB
   // where migrations run before the seed creates the teaching schedule.
   const plannedSeed = [
     ["seed-session-0001", "class-0001", "2026-10-06", "18:30", "20:30"],
     ["seed-session-0002", "class-0002", "2026-11-02", "18:00", "20:00"],
+    ["seed-session-0003", "class-0003", "2026-11-10", "18:00", "20:00"],
     ["seed-session-0006", "class-0006", "2026-11-03", "18:00", "20:00"],
   ];
   for (const [classSessionId, classId, date, start, end] of plannedSeed) {
