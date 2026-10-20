@@ -159,6 +159,19 @@ public class ClassSessionService {
             }
         }
 
+        // The newly proposed make-up slot must not collide with any existing
+        // scheduled session, including one whose time was already cancelled.
+        if (makeUp) {
+            Integer alreadyExists = db.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=?",
+                Integer.class, classId, input.newDate(), input.newStartTime(), input.newEndTime());
+            if (alreadyExists != null && alreadyExists > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "Make-up lesson already exists; choose another slot");
+            }
+        }
+
         // Cancel only assignments belonging to this one lesson, keeping payroll/audit history.
         db.update("UPDATE teaching_schedules SET status='CANCELLED' " +
                   "WHERE class_id=? AND date=? AND start_time=? AND end_time=? AND status='ASSIGNED'",
