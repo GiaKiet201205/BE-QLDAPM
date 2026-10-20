@@ -129,7 +129,7 @@ public class ClassSessionService {
             "WHERE class_id=? AND status='ASSIGNED' AND work_type='CLASS_SUPPORT'", classId, classId);
         for (Map<String,Object> existing : assigned) {
             Slot slot = new Slot(((Date)existing.get("date")).toLocalDate(),
-                    (LocalTime)existing.get("start_time"), (LocalTime)existing.get("end_time"));
+                    LocalTime.parse(existing.get("start_time").toString()), LocalTime.parse(existing.get("end_time").toString()));
             if (!desired.contains(slot)) {
                 throw new ApiException(HttpStatus.CONFLICT,
                         "Cannot remove or change a lesson with assigned Teacher/CS. Cancel assignments first.");
@@ -140,13 +140,13 @@ public class ClassSessionService {
             "SELECT class_session_id, date,start_time,end_time FROM class_sessions WHERE class_id=? FOR UPDATE", classId);
         for (Map<String,Object> item : previous) {
             Slot slot = new Slot(((Date)item.get("date")).toLocalDate(),
-                    (LocalTime)item.get("start_time"), (LocalTime)item.get("end_time"));
+                    LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString()));
             if (!desired.contains(slot)) db.update("DELETE FROM class_sessions WHERE class_session_id=?",
                     item.get("class_session_id"));
         }
         Set<Slot> old = previous.stream()
                 .map(item -> new Slot(((Date)item.get("date")).toLocalDate(),
-                        (LocalTime)item.get("start_time"), (LocalTime)item.get("end_time")))
+                        LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString())))
                 .collect(Collectors.toSet());
         for (Slot slot : desired) {
             if (!old.contains(slot)) {
