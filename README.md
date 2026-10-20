@@ -33,7 +33,13 @@ Server chạy ở `http://localhost:8080`.
 | POST | `/api/auth/register` | Không | Đăng ký user mới |
 | POST | `/api/auth/login` | Không | Đăng nhập, trả về JWT |
 | GET | `/api/public/ping` | Không | Test server sống |
+| GET | `/api/dashboard` | Có | Tổng quan theo role của tài khoản hiện tại (ADMIN, TC, CM, TEACHER, SALE, CS) |
+| GET | `/api/statistics?period=YEAR&year=2026` | ADMIN | Tổng hợp học viên, lớp, nhân sự, lịch phân công và công lương |
 | GET | `/api/me` | **Có** (Bearer token) | Lấy thông tin user hiện tại |
+
+Dashboard trả thống kê, lịch trong ngày, hoạt động gần đây và mục cần xử lý từ dữ liệu lớp học, học viên, lịch dạy/làm, lịch rảnh và bài tập. Role được đọc từ tài khoản đã xác thực; endpoint không nhận role từ client.
+
+API thống kê hỗ trợ `period=DAY&date=2026-10-19`, `period=MONTH&year=2026&month=10` và `period=YEAR&year=2026`. Response gồm các nhóm `overview`, `employees`, `schedules`, `financial` và `monthly`. Số học viên/lớp/nhân sự, học viên mới, trạng thái lịch và xung đột phân công được tổng hợp từ các bảng vận hành; chi phí lương lấy từ `employee_salaries` và `staff_salaries`. Do hệ thống chưa có dữ liệu giao dịch/học phí, `financial.revenue` và doanh thu theo tháng trả `null` kèm `revenueAvailable=false` thay vì số liệu ước tính. Bảng lương theo tháng nên các trường chi phí lương trả `null` khi lọc theo ngày. API chỉ cho phép tài khoản ADMIN đang hoạt động.
 
 ### Ví dụ đăng ký
 ```bash

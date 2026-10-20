@@ -226,6 +226,353 @@ async function main() {
     },
   });
 
+  // --- PHẦN THÊM DỮ LIỆU TỰ ĐỘNG ---
+
+  // 1. AppFunction
+  for (let i = 1; i <= 20; i++) {
+    await prisma.appFunction.upsert({
+      where: { functionId: `auto-func-${i}` },
+      update: { functionName: `Chức năng mở rộng ${i}` },
+      create: { functionId: `auto-func-${i}`, functionName: `Chức năng mở rộng ${i}` },
+    });
+  }
+
+  // 2. Permission
+  for (let i = 1; i <= 20; i++) {
+    await prisma.permission.upsert({
+      where: {
+        roleId_functionId_action: { roleId: "TEACHER", functionId: `auto-func-${i}`, action: "READ" },
+      },
+      update: {},
+      create: { roleId: "TEACHER", functionId: `auto-func-${i}`, action: "READ" },
+    });
+  }
+
+  // 3. User & Employee & SalaryRank & Certificate
+  for (let i = 1; i <= 20; i++) {
+    const autoUsername = `auto-user-${i}`;
+    const autoEmployeeId = `auto-emp-${i}`;
+
+    await prisma.user.upsert({
+      where: { username: autoUsername },
+      update: {},
+      create: {
+        username: autoUsername,
+        email: `auto.user.${i}@iig.local`,
+        passwordHash,
+        roleId: "TEACHER",
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.employee.upsert({
+      where: { employeeId: autoEmployeeId },
+      update: {},
+      create: {
+        employeeId: autoEmployeeId,
+        username: autoUsername,
+        employeeCode: `AUTO-EMP-${String(i).padStart(3, "0")}`,
+        fullName: `Nhân viên tự động ${i}`,
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.salaryRank.upsert({
+      where: { salaryRankId: `auto-rank-${i}` },
+      update: {},
+      create: {
+        salaryRankId: `auto-rank-${i}`,
+        roleId: "TEACHER",
+        rank: `Bậc lương tự động ${i}`,
+        amount: 150000 + i * 5000,
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.certificate.upsert({
+      where: { certificateId: `auto-cert-${i}` },
+      update: {},
+      create: {
+        certificateId: `auto-cert-${i}`,
+        employeeId: autoEmployeeId,
+        certificateType: `Chứng chỉ tự động ${i}`,
+        score: 8.5,
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  // 4. Course & Lesson
+  for (let i = 1; i <= 20; i++) {
+    const autoCourseId = `auto-course-${i}`;
+
+    await prisma.course.upsert({
+      where: { courseId: autoCourseId },
+      update: {},
+      create: {
+        courseId: autoCourseId,
+        name: `Khóa học mở rộng ${i}`,
+        level: `Cấp độ ${i}`,
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.lesson.upsert({
+      where: { lessonId: `auto-lesson-${i}` },
+      update: {},
+      create: {
+        lessonId: `auto-lesson-${i}`,
+        courseId: autoCourseId,
+        title: `Bài học tự động số ${i}`,
+        orderIndex: i,
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  // 5. Class & ClassTargetRequirement
+  for (let i = 1; i <= 20; i++) {
+    const autoClassId = `auto-class-${i}`;
+    const autoCourseId = `auto-course-${i}`;
+
+    await prisma.class.upsert({
+      where: { classId: autoClassId },
+      update: {},
+      create: {
+        classId: autoClassId,
+        courseId: autoCourseId,
+        classCode: `AUTO-CLS-${String(i).padStart(3, "0")}`,
+        name: `Lớp học mở rộng ${i}`,
+        startDate: new Date("2026-10-01"),
+        endDate: new Date("2026-12-31"),
+        status: "DRAFT",
+      },
+    });
+
+    await prisma.classTargetRequirement.upsert({
+      where: { classTargetRequirementId: `auto-ctr-${i}` },
+      update: {},
+      create: {
+        classTargetRequirementId: `auto-ctr-${i}`,
+        classId: autoClassId,
+        targetType: "OVERALL_SCORE",
+        requiredTarget: 7.0,
+      },
+    });
+  }
+
+  // 6. Student & StudentTarget & ClassStudent
+  for (let i = 1; i <= 20; i++) {
+    const autoStudentId = `auto-stu-${i}`;
+    const autoClassId = `auto-class-${i}`;
+    const autoCourseId = `auto-course-${i}`;
+
+    await prisma.student.upsert({
+      where: { studentId: autoStudentId },
+      update: {},
+      create: {
+        studentId: autoStudentId,
+        studentCode: `STU-AUTO-${String(i).padStart(3, "0")}`,
+        fullName: `Học viên tự động ${i}`,
+        status: "Active",
+      },
+    });
+
+    await prisma.studentTarget.upsert({
+      where: { studentTargetId: `auto-st-${i}` },
+      update: {},
+      create: {
+        studentTargetId: `auto-st-${i}`,
+        studentId: autoStudentId,
+        courseId: autoCourseId,
+        targetType: "TARGET_OVERALL",
+        targetValue: 6.5,
+      },
+    });
+
+    await prisma.classStudent.upsert({
+      where: { classStudentId: `auto-cs-${i}` },
+      update: {},
+      create: {
+        classStudentId: `auto-cs-${i}`,
+        classId: autoClassId,
+        studentId: autoStudentId,
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  // 7. ClassAccessScope
+  for (let i = 1; i <= 20; i++) {
+    await prisma.classAccessScope.upsert({
+      where: { classAccessScopeId: `auto-cas-${i}` },
+      update: {},
+      create: {
+        classAccessScopeId: `auto-cas-${i}`,
+        employeeId: `auto-emp-${i}`,
+        classId: `auto-class-${i}`,
+        status: "ACTIVE",
+        source: "AUTO_ASSIGNED",
+      },
+    });
+  }
+
+  // 8. Availability, TeachingSchedule, StaffSchedule
+  for (let i = 1; i <= 20; i++) {
+    const autoEmployeeId = `auto-emp-${i}`;
+    const autoClassId = `auto-class-${i}`;
+
+    await prisma.availability.upsert({
+      where: { availabilityId: `auto-avail-${i}` },
+      update: {},
+      create: {
+        availabilityId: `auto-avail-${i}`,
+        employeeId: autoEmployeeId,
+        availableDate: new Date("2026-10-15"),
+        startTime: new Date("1970-01-01T08:00:00Z"),
+        endTime: new Date("1970-01-01T12:00:00Z"),
+        status: "approved",
+      },
+    });
+
+    await prisma.teachingSchedule.upsert({
+      where: { teachingScheduleId: `auto-ts-${i}` },
+      update: {},
+      create: {
+        teachingScheduleId: `auto-ts-${i}`,
+        teacherId: autoEmployeeId,
+        classId: autoClassId,
+        date: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
+        status: "ASSIGNED",
+      },
+    });
+
+    await prisma.staffSchedule.upsert({
+      where: { staffScheduleId: `auto-ss-${i}` },
+      update: {},
+      create: {
+        staffScheduleId: `auto-ss-${i}`,
+        employeeId: autoEmployeeId,
+        classId: autoClassId,
+        date: new Date("2026-10-21"),
+        startTime: new Date("1970-01-01T08:00:00Z"),
+        endTime: new Date("1970-01-01T17:00:00Z"),
+        workType: "FULL_TIME",
+        status: "ASSIGNED",
+      },
+    });
+  }
+
+  // 9. Assignment, Exam, StudentResult
+  for (let i = 1; i <= 20; i++) {
+    const autoTeacherId = `auto-emp-${i}`;
+    const autoClassId = `auto-class-${i}`;
+    const autoStudentId = `auto-stu-${i}`;
+    const autoAssignmentId = `auto-assign-${i}`;
+    const autoExamId = `auto-exam-${i}`;
+
+    await prisma.assignment.upsert({
+      where: { assignmentId: autoAssignmentId },
+      update: {},
+      create: {
+        assignmentId: autoAssignmentId,
+        teacherId: autoTeacherId,
+        classId: autoClassId,
+        title: `Bài tập tự động ${i}`,
+        deadline: new Date("2026-11-01T23:59:59Z"),
+        status: "OPEN",
+      },
+    });
+
+    await prisma.exam.upsert({
+      where: { examId: autoExamId },
+      update: {},
+      create: {
+        examId: autoExamId,
+        teacherId: autoTeacherId,
+        classId: autoClassId,
+        title: `Bài kiểm tra tự động ${i}`,
+        duration: 90,
+        examDate: new Date("2026-11-10T08:00:00Z"),
+        status: "SCHEDULED",
+      },
+    });
+
+    await prisma.studentResult.upsert({
+      where: { studentResultId: `auto-sr-${i}` },
+      update: {},
+      create: {
+        studentResultId: `auto-sr-${i}`,
+        studentId: autoStudentId,
+        classId: autoClassId,
+        assignmentId: autoAssignmentId,
+        score: 8.0,
+        evaluatedById: autoTeacherId,
+      },
+    });
+  }
+
+  // 10. EmployeeSalary, EmployeeSalaryDetail, StaffSalary, AuditLog
+  for (let i = 1; i <= 20; i++) {
+    const autoEmployeeId = `auto-emp-${i}`;
+    const autoSalaryId = `auto-es-${i}`;
+
+    await prisma.employeeSalary.upsert({
+      where: { employeeSalaryId: autoSalaryId },
+      update: {},
+      create: {
+        employeeSalaryId: autoSalaryId,
+        employeeId: autoEmployeeId,
+        period: "2026-10",
+        totalSessions: 10,
+        totalHours: 20.0,
+        rate: 200000.0,
+        amount: 4000000.0,
+        status: "DRAFT",
+      },
+    });
+
+    await prisma.employeeSalaryDetail.upsert({
+      where: { employeeSalaryId: autoSalaryId },
+      update: {},
+      create: {
+        employeeSalaryId: autoSalaryId,
+        totalSessions: 10,
+        salaryPerHours: 200000.0,
+        totalHours: 20.0,
+        totalSalary: 4000000.0,
+      },
+    });
+
+    await prisma.staffSalary.upsert({
+      where: { staffSalaryId: `auto-staffsal-${i}` },
+      update: {},
+      create: {
+        staffSalaryId: `auto-staffsal-${i}`,
+        employeeId: autoEmployeeId,
+        period: "2026-10",
+        totalShifts: 22,
+        totalHours: 176.0,
+        rate: 50000.0,
+        amount: 8800000.0,
+        status: "DRAFT",
+      },
+    });
+
+    await prisma.auditLog.upsert({
+      where: { auditLogId: `auto-log-${i}` },
+      update: {},
+      create: {
+        auditLogId: `auto-log-${i}`,
+        action: "CREATE",
+        entityType: "SYSTEM_PROCESS",
+        entityId: `SYS-${i}`,
+      },
+    });
+  }
+
   console.log("Seed completed.");
   console.log("Demo login: admin / 123456");
 }
