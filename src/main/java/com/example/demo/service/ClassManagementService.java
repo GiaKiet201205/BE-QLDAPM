@@ -44,6 +44,7 @@ public class ClassManagementService {
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbc;
+    private final SchedulingAccess schedulingAccess;
     private final ClassSessionService classSessionService;
 
     @Transactional(readOnly = true)
@@ -863,6 +864,20 @@ public class ClassManagementService {
                 .filter(item -> classId.equals(item.getClassId()))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
                         "Support schedule not found"));
+        if (!"ASSIGNED".equalsIgnoreCase(schedule.getStatus())
+                || !"CLASS_SUPPORT".equalsIgnoreCase(schedule.getWorkType())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Only active CLASS_SUPPORT shifts can be overridden");
+        }
+        Integer currentLesson = jdbc.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='PLANNED'",
+                Integer.class, classId, schedule.getDate(),
+                schedule.getStartTime(), schedule.getEndTime());
+        if (currentLesson == null || currentLesson == 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Support shift is no longer attached to an active planned class lesson");
+        }
 
         Employee newCs = employeeRepository.findById(request.newCsId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
@@ -871,7 +886,8 @@ public class ClassManagementService {
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
                         "Replacement employee has no user account"));
         if (!"CS".equalsIgnoreCase(user.getRoleId())
-                || !"ACTIVE".equalsIgnoreCase(newCs.getStatus())) {
+                || !"ACTIVE".equalsIgnoreCase(newCs.getStatus())
+                || !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Replacement employee must be an active CS");
         }
@@ -885,6 +901,14 @@ public class ClassManagementService {
                         schedule.getStartTime(), schedule.getEndTime(),
                         item.getStartTime(), item.getEndTime()))
                 .toList();
+
+        String campus = schedulingAccess.campusForWorkplace(schedule.getWorkplaceId());
+        if (!schedulingAccess.hasApprovedAvailability(
+                newCs.getEmployeeId(), schedule.getDate(), schedule.getStartTime(),
+                schedule.getEndTime(), campus)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Replacement CS needs approved availability covering the support shift");
+        }
 
         if (!conflicts.isEmpty() && !request.allowConflict()) {
             throw new ApiException(HttpStatus.CONFLICT,
