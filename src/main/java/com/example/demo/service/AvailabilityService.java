@@ -103,19 +103,23 @@ public class AvailabilityService {
             AvailabilityRequest body,
             String exceptId
     ) {
-        Integer count = db.queryForObject(
-            "SELECT count(*) " +
+        // A rejected registration must not reserve time or block a new request.
+        // Recurring availability can overlap a dated weekly slot from another
+        // week; show which slot caused the conflict instead of a generic error.
+        List<Map<String,Object>> conflicts = db.queryForList(
+            "SELECT available_date, day_of_week, start_time, end_time " +
             "FROM availabilities " +
             "WHERE employee_id = ? " +
             "AND availability_id <> ? " +
+            "AND upper(status) <> 'REJECTED' " +
             "AND ( " +
             "    (CAST(? AS date) IS NULL AND lower(day_of_week) = ?) " +
             "    OR available_date = ? " +
             "    OR (available_date IS NULL AND lower(day_of_week) = ?) " +
             ") " +
             "AND start_time < ? " +
-            "AND end_time > ?",
-            Integer.class,
+            "AND end_time > ? " +
+            "ORDER BY available_date NULLS FIRST, start_time LIMIT 1",
             employeeId,
             exceptId,
             body.availableDate(),
@@ -126,12 +130,38 @@ public class AvailabilityService {
             body.startTime()
         );
 
-        if (count != null && count > 0) {
+        if (!conflicts.isEmpty()) {
+            Map<String,Object> conflict = conflicts.get(0);
+            Object date = conflict.get("available_date");
+            String scope = date == null
+                ? "định kỳ " + dayLabel(conflict.get("day_of_week"))
+                : "ngày " + date;
             throw new ApiException(
                 HttpStatus.CONFLICT,
-                "Availability time overlaps existing slot"
+                "Khung giờ trùng với lịch đã đăng ký (" + scope + "): " +
+                timeLabel(conflict.get("start_time")) + "–" +
+                timeLabel(conflict.get("end_time")) +
+                ". Vui lòng chọn khung giờ khác hoặc chỉnh sửa lịch hiện có."
             );
         }
+    }
+
+    private String dayLabel(Object weekday) {
+        return switch (String.valueOf(weekday).toLowerCase(Locale.ROOT)) {
+            case "mon" -> "T2";
+            case "tue" -> "T3";
+            case "wed" -> "T4";
+            case "thu" -> "T5";
+            case "fri" -> "T6";
+            case "sat" -> "T7";
+            case "sun" -> "CN";
+            default -> String.valueOf(weekday);
+        };
+    }
+
+    private String timeLabel(Object value) {
+        String time = String.valueOf(value);
+        return time.length() >= 5 ? time.substring(0, 5) : time;
     }
 
     @Transactional
