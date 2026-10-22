@@ -388,7 +388,7 @@ async function main() {
         name: `Lớp học mở rộng ${i}`,
         startDate: new Date("2026-10-01"),
         endDate: new Date("2026-12-31"),
-        status: "DRAFT",
+        status: "READY",
       },
     });
 
@@ -428,8 +428,8 @@ async function main() {
         studentTargetId: `auto-st-${i}`,
         studentId: autoStudentId,
         courseId: autoCourseId,
-        targetType: "TARGET_OVERALL",
-        targetValue: 6.5,
+        targetType: "OVERALL_SCORE",
+        targetValue: 7.0,
       },
     });
 
@@ -471,9 +471,9 @@ async function main() {
       create: {
         availabilityId: `auto-avail-${i}`,
         employeeId: autoEmployeeId,
-        availableDate: new Date("2026-10-15"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T12:00:00Z"),
+        availableDate: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
         status: "approved",
       },
     });
@@ -505,20 +505,9 @@ async function main() {
       },
     });
 
-    await prisma.staffSchedule.upsert({
-      where: { staffScheduleId: `auto-ss-${i}` },
-      update: {},
-      create: {
-        staffScheduleId: `auto-ss-${i}`,
-        employeeId: autoEmployeeId,
-        classId: autoClassId,
-        date: new Date("2026-10-21"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T17:00:00Z"),
-        workType: "FULL_TIME",
-        status: "ASSIGNED",
-      },
-    });
+    // Do not seed staff shifts for TEACHER users; these shifts cannot be
+    // created through the role-validated scheduling API.
+
   }
 
   // 9. Assignment, Exam, StudentResult
