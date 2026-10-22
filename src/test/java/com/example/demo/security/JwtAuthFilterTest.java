@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,9 +32,11 @@ class JwtAuthFilterTest {
 
         var request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer test-token");
+        var response = new MockHttpServletResponse();
         new JwtAuthFilter(jwt, users).doFilter(
-            request, new MockHttpServletResponse(), new MockFilterChain());
+            request, response, new MockFilterChain());
 
+        assertEquals(401, response.getStatus());
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(jwt, never()).isTokenValid(anyString(), anyString());
     }
