@@ -52,6 +52,11 @@ public class AdminAccountController {
         return role;
     }
 
+    private void audit(Authentication actor, String action, String target) {
+        db.update("INSERT INTO audit_logs(audit_log_id,username,action,entity_type,entity_id) VALUES (?,?,?,?,?)",
+            UUID.randomUUID().toString(), actor.getName(), action, "ACCOUNT", target);
+    }
+
     private List<Map<String,Object>> rows() {
         return db.queryForList(
             "SELECT u.username,u.email,u.role_id AS role,u.status,u.created_at AS \"createdAt\", " +
@@ -85,6 +90,7 @@ public class AdminAccountController {
                 username,email,passwords.encode(data.password()),role);
         db.update("INSERT INTO employees(employee_id,username,employee_code,full_name,status) VALUES (?,?,?,?,'ACTIVE')",
                 UUID.randomUUID().toString(),username,code,data.fullName().trim());
+        audit(auth, "CREATE_EMPLOYEE_ACCOUNT", username);
         return rows().stream().filter(row -> username.equals(row.get("username"))).findFirst().orElseThrow();
     }
 
@@ -100,7 +106,18 @@ public class AdminAccountController {
                 Integer.class,username) == 0) {
             throw new ApiException(HttpStatus.CONFLICT,"Only employee roles can be changed");
         }
+        Integer activeShifts = db.queryForObject(
+            "SELECT (SELECT count(*) FROM teaching_schedules t JOIN employees e " +
+            "ON e.employee_id=t.teacher_id WHERE e.username=? AND t.status='ASSIGNED') + " +
+            "(SELECT count(*) FROM staff_schedules s JOIN employees e " +
+            "ON e.employee_id=s.employee_id WHERE e.username=? AND s.status='ASSIGNED')",
+            Integer.class, username, username);
+        if (activeShifts != null && activeShifts > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Cancel or reassign active schedules before changing employee role");
+        }
         db.update("UPDATE users SET role_id=? WHERE username=?",next,username);
+        audit(auth, "CHANGE_ACCOUNT_ROLE", username);
         return rows().stream().filter(row -> username.equals(row.get("username"))).findFirst().orElseThrow();
     }
 
@@ -119,6 +136,7 @@ public class AdminAccountController {
         if (db.update("UPDATE users SET status=? WHERE username=?",state,username) == 0) {
             throw new ApiException(HttpStatus.NOT_FOUND,"User not found");
         }
+        audit(auth, "CHANGE_ACCOUNT_STATUS_" + state, username);
         return rows().stream().filter(row -> username.equals(row.get("username"))).findFirst().orElseThrow();
     }
 }
