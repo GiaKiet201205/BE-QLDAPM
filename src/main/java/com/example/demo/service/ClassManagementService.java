@@ -566,6 +566,13 @@ public class ClassManagementService {
         requireViewAccess(classItem, actor(authentication));
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
+        Actor viewer = actor(authentication);
+        if ("TEACHER".equals(viewer.role()) &&
+                classStudentRepository.findByClassIdAndStudentId(classId, studentId)
+                    .filter(item -> "ACTIVE".equalsIgnoreCase(item.getStatus())).isEmpty()) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Teacher may only check eligibility for students in the assigned class");
+        }
         return eligibility(student, classItem);
     }
 
@@ -846,6 +853,9 @@ public class ClassManagementService {
                             .build());
         }
 
+        if (request.score() == null || request.score().signum() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Result score cannot be negative");
+        }
         result.setScore(request.score());
         result.setFeedback(trimToNull(request.feedback()));
         result.setEvaluatedById(teacher.getEmployeeId());
