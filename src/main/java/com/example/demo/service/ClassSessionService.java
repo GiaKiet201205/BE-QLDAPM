@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -144,8 +145,8 @@ public class ClassSessionService {
         LocalDate oldDate = ((Date)old.get("date")).toLocalDate();
         LocalTime oldStart = LocalTime.parse(old.get("start_time").toString());
         LocalTime oldEnd = LocalTime.parse(old.get("end_time").toString());
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        if (!oldDate.isAfter(today)) {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (!LocalDateTime.of(oldDate, oldStart).isAfter(now)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Only future lessons may be cancelled or rescheduled");
         }
@@ -158,7 +159,7 @@ public class ClassSessionService {
         if (makeUp) {
             LocalDate start = ((Date)cls.get("start_date")).toLocalDate();
             LocalDate end = ((Date)cls.get("end_date")).toLocalDate();
-            if (!input.newDate().isAfter(today) ||
+            if (!LocalDateTime.of(input.newDate(), input.newStartTime()).isAfter(now) ||
                     input.newDate().isBefore(start) || input.newDate().isAfter(end) ||
                     !input.newEndTime().isAfter(input.newStartTime())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
