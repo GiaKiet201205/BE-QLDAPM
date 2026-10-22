@@ -46,11 +46,15 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest req) {
+        String username = userRepository.findByUsername(req.username())
+                .map(User::getUsername)
+                .orElseGet(() -> userRepository.findByEmailIgnoreCase(req.username())
+                        .map(User::getUsername).orElse(req.username()));
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.username(), req.password())
+                new UsernamePasswordAuthenticationToken(username, req.password())
         );
 
-        User user = userRepository.findByUsername(req.username())
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Sai username hoac password"));
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRoleId());
