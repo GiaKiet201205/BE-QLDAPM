@@ -45,9 +45,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (userDetails.isEnabled() && userDetails.isAccountNonLocked()
-                        && userDetails.isAccountNonExpired() && userDetails.isCredentialsNonExpired()
-                        && jwtUtil.isTokenValid(token, userDetails.getUsername())) {
+                if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()
+                        || !userDetails.isAccountNonExpired() || !userDetails.isCredentialsNonExpired()) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account is inactive");
+                    return;
+                }
+                if (jwtUtil.isTokenValid(token, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
