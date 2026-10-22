@@ -108,9 +108,9 @@ public class AdminAccountController {
         }
         Integer activeShifts = db.queryForObject(
             "SELECT (SELECT count(*) FROM teaching_schedules t JOIN employees e " +
-            "ON e.employee_id=t.teacher_id WHERE e.username=? AND t.status='ASSIGNED') + " +
+            "ON e.employee_id=t.teacher_id WHERE e.username=? AND t.status='ASSIGNED' AND t.date >= CURRENT_DATE) + " +
             "(SELECT count(*) FROM staff_schedules s JOIN employees e " +
-            "ON e.employee_id=s.employee_id WHERE e.username=? AND s.status='ASSIGNED')",
+            "ON e.employee_id=s.employee_id WHERE e.username=? AND s.status='ASSIGNED' AND s.date >= CURRENT_DATE)",
             Integer.class, username, username);
         if (activeShifts != null && activeShifts > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
