@@ -33,6 +33,21 @@ public final class SchedulingDtos {
         String room
     ) {}
 
+    // Batch operations are atomic: every selected planned lesson must pass validation.
+    public record TeachingBatchRequest(
+        @NotBlank String teacherId,
+        @NotBlank String classId,
+        String campus,
+        java.util.List<@NotBlank String> sessionIds
+    ) {}
+
+    public record SupportBatchRequest(
+        @NotBlank String employeeId,
+        @NotBlank String classId,
+        String workplaceId,
+        java.util.List<@NotBlank String> sessionIds
+    ) {}
+
     public record StaffRequest(
         @NotBlank String employeeId,
         @NotBlank String staffRole,

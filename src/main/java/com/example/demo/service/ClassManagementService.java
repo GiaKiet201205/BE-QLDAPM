@@ -6,6 +6,7 @@ import com.example.demo.exception.ApiException;
 import com.example.demo.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,9 @@ public class ClassManagementService {
     private final StudentResultRepository studentResultRepository;
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbc;
+    private final SchedulingAccess schedulingAccess;
+    private final ClassSessionService classSessionService;
 
     @Transactional(readOnly = true)
     public List<ClassSummaryResponse> listClasses(Authentication authentication) {
@@ -55,6 +59,13 @@ public class ClassManagementService {
                         .stream()
                         .map(ClassAccessScope::getClassId)
                         .collect(Collectors.toSet());
+                // A current CLASS_SUPPORT assignment also grants class access.
+                // Cancelled shifts immediately revoke that dynamic scope.
+                ids.addAll(jdbc.query(
+                        "SELECT DISTINCT s.class_id FROM staff_schedules s " +
+                        "WHERE s.employee_id=? AND s.work_type='CLASS_SUPPORT' " +
+                        "AND s.status='ASSIGNED' AND s.class_id IS NOT NULL",
+                        (rs, n) -> rs.getString(1), employee.getEmployeeId()));
                 yield classRepository.findAllByOrderByCreatedAtDesc().stream()
                         .filter(item -> ids.contains(item.getClassId()))
                         .toList();
@@ -229,12 +240,13 @@ public class ClassManagementService {
                 .createdByUsername(actor.username())
                 .createdAt(Instant.now())
                 .build();
-        classRepository.save(classItem);
+        // Flush the new class before querying it from the JDBC-based planning service.
+        classRepository.saveAndFlush(classItem);
         replaceRequirements(classItem.getClassId(), request.targetRequirements());
 
         if ("CS".equals(actor.role())) {
             Employee employee = requireEmployee(actor.username());
-            classAccessScopeRepository.save(ClassAccessScope.builder()
+            classAccessScopeRepository.saveAndFlush(ClassAccessScope.builder()
                     .classAccessScopeId(newId("class-scope"))
                     .employeeId(employee.getEmployeeId())
                     .classId(classItem.getClassId())
@@ -242,6 +254,12 @@ public class ClassManagementService {
                     .source("CREATED_BY_CS")
                     .createdAt(Instant.now())
                     .build());
+        }
+
+        // Creating a class together with its timetable is atomic: if a planned
+        // session is invalid, the new class and its permissions are rolled back.
+        if (request.plannedSessions() != null && !request.plannedSessions().isEmpty()) {
+            classSessionService.replace(classItem.getClassId(), request.plannedSessions(), authentication);
         }
 
         audit(actor.username(), "CREATE_CLASS", classItem.getClassId(),
@@ -258,6 +276,8 @@ public class ClassManagementService {
         AcademicClass classItem = requireClass(classId);
         Actor actor = actor(authentication);
         requireManageAccess(classItem, actor);
+        jdbc.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
+                String.class, classId);
         if ("CLOSED".equalsIgnoreCase(classItem.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Closed classes are read-only");
         }
@@ -278,6 +298,14 @@ public class ClassManagementService {
 
         if (!classItem.getStartDate().equals(request.startDate())
                 || !classItem.getEndDate().equals(request.endDate())) {
+            Integer outsidePlan = jdbc.queryForObject(
+                    "SELECT count(*) FROM class_sessions WHERE class_id=? " +
+                    "AND (date < ? OR date > ?) AND status='PLANNED'",
+                    Integer.class, classId, request.startDate(), request.endDate());
+            if (outsidePlan != null && outsidePlan > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Class date range cannot exclude planned lessons; adjust the timetable first");
+            }
             ensureClassHistoryInsideDateRange(
                     classId,
                     request.startDate(),
@@ -326,12 +354,24 @@ public class ClassManagementService {
         AcademicClass classItem = requireClass(classId);
         Actor actor = actor(authentication);
         requireManageAccess(classItem, actor);
+        jdbc.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
+                String.class, classId);
 
         String nextStatus = request.status().trim().toUpperCase();
         int currentIndex = CLASS_STATUSES.indexOf(classItem.getStatus());
         if (currentIndex < 0 || currentIndex + 1 >= CLASS_STATUSES.size()
                 || !CLASS_STATUSES.get(currentIndex + 1).equals(nextStatus)) {
             throw new ApiException(HttpStatus.CONFLICT, "Invalid class status transition");
+        }
+
+        if ("READY".equals(nextStatus)) {
+            Integer count = jdbc.queryForObject(
+                    "SELECT count(*) FROM class_sessions WHERE class_id=? AND status='PLANNED'",
+                    Integer.class, classId);
+            if (count == null || count == 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Class must have a planned timetable before becoming Ready");
+            }
         }
 
         if (Set.of("READY", "RUNNING").contains(nextStatus)) {
@@ -342,6 +382,18 @@ public class ClassManagementService {
         }
 
         if ("RUNNING".equals(nextStatus)) {
+            Integer missing = jdbc.queryForObject(
+                    "SELECT count(*) FROM class_sessions cs " +
+                    "WHERE cs.class_id=? AND cs.status='PLANNED' AND NOT EXISTS (" +
+                    "SELECT 1 FROM teaching_schedules ts WHERE ts.class_id=cs.class_id " +
+                    "AND ts.date=cs.date AND ts.start_time=cs.start_time " +
+                    "AND ts.end_time=cs.end_time AND ts.status='ASSIGNED')",
+                    Integer.class, classId);
+            if (missing == null || missing > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Every planned class session must have an assigned teacher before Running");
+            }
+
             boolean hasValidSchedule = teachingScheduleRepository
                     .findByClassIdAndStatusIgnoreCaseOrderByDateAscStartTimeAsc(classId, "ASSIGNED")
                     .stream()
@@ -353,6 +405,21 @@ public class ClassManagementService {
             if (!hasValidSchedule) {
                 throw new ApiException(HttpStatus.CONFLICT,
                         "A valid assigned teaching schedule is required before the class can run");
+            }
+        }
+
+        if ("COMPLETED".equals(nextStatus)) {
+            Integer remainingLessons = jdbc.queryForObject(
+                    "SELECT count(*) FROM class_sessions WHERE class_id=? " +
+                    "AND status='PLANNED' AND (date > ? OR (date = ? AND end_time > ?))",
+                    Integer.class, classId,
+                    LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),
+                    LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),
+                    java.time.LocalTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
+            if (remainingLessons != null && remainingLessons > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Cannot complete a class while today or future planned lessons remain. " +
+                        "Finish scheduled lessons or cancel future lessons through the approved workflow.");
             }
         }
 
@@ -499,6 +566,13 @@ public class ClassManagementService {
         requireViewAccess(classItem, actor(authentication));
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"));
+        Actor viewer = actor(authentication);
+        if ("TEACHER".equals(viewer.role()) &&
+                classStudentRepository.findByClassIdAndStudentId(classId, studentId)
+                    .filter(item -> "ACTIVE".equalsIgnoreCase(item.getStatus())).isEmpty()) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Teacher may only check eligibility for students in the assigned class");
+        }
         return eligibility(student, classItem);
     }
 
@@ -779,6 +853,9 @@ public class ClassManagementService {
                             .build());
         }
 
+        if (request.score() == null || request.score().signum() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Result score cannot be negative");
+        }
         result.setScore(request.score());
         result.setFeedback(trimToNull(request.feedback()));
         result.setEvaluatedById(teacher.getEmployeeId());
@@ -812,6 +889,20 @@ public class ClassManagementService {
                 .filter(item -> classId.equals(item.getClassId()))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
                         "Support schedule not found"));
+        if (!"ASSIGNED".equalsIgnoreCase(schedule.getStatus())
+                || !"CLASS_SUPPORT".equalsIgnoreCase(schedule.getWorkType())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Only active CLASS_SUPPORT shifts can be overridden");
+        }
+        Integer currentLesson = jdbc.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='PLANNED'",
+                Integer.class, classId, schedule.getDate(),
+                schedule.getStartTime(), schedule.getEndTime());
+        if (currentLesson == null || currentLesson == 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Support shift is no longer attached to an active planned class lesson");
+        }
 
         Employee newCs = employeeRepository.findById(request.newCsId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
@@ -820,7 +911,8 @@ public class ClassManagementService {
                 .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
                         "Replacement employee has no user account"));
         if (!"CS".equalsIgnoreCase(user.getRoleId())
-                || !"ACTIVE".equalsIgnoreCase(newCs.getStatus())) {
+                || !"ACTIVE".equalsIgnoreCase(newCs.getStatus())
+                || !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Replacement employee must be an active CS");
         }
@@ -834,6 +926,14 @@ public class ClassManagementService {
                         schedule.getStartTime(), schedule.getEndTime(),
                         item.getStartTime(), item.getEndTime()))
                 .toList();
+
+        String campus = schedulingAccess.campusForWorkplace(schedule.getWorkplaceId());
+        if (!schedulingAccess.hasApprovedAvailability(
+                newCs.getEmployeeId(), schedule.getDate(), schedule.getStartTime(),
+                schedule.getEndTime(), campus)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Replacement CS needs approved availability covering the support shift");
+        }
 
         if (!conflicts.isEmpty() && !request.allowConflict()) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -1205,9 +1305,7 @@ public class ClassManagementService {
         if ("ADMIN".equals(actor.role())) return;
 
         Employee employee = requireEmployee(actor.username());
-        if ("CS".equals(actor.role())
-                && classAccessScopeRepository.existsByEmployeeIdAndClassIdAndStatusIgnoreCase(
-                employee.getEmployeeId(), classItem.getClassId(), "ACTIVE")) {
+        if ("CS".equals(actor.role()) && hasCsClassAccess(employee.getEmployeeId(), classItem.getClassId())) {
             return;
         }
         if ("TEACHER".equals(actor.role())
@@ -1224,10 +1322,19 @@ public class ClassManagementService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only Admin or assigned CS can manage a class");
         }
         Employee employee = requireEmployee(actor.username());
-        if (!classAccessScopeRepository.existsByEmployeeIdAndClassIdAndStatusIgnoreCase(
-                employee.getEmployeeId(), classItem.getClassId(), "ACTIVE")) {
+        if (!hasCsClassAccess(employee.getEmployeeId(), classItem.getClassId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not manage this class");
         }
+    }
+
+    private boolean hasCsClassAccess(String employeeId, String classId) {
+        if (classAccessScopeRepository.existsByEmployeeIdAndClassIdAndStatusIgnoreCase(
+                employeeId, classId, "ACTIVE")) return true;
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM staff_schedules WHERE employee_id=? AND class_id=? " +
+                "AND work_type='CLASS_SUPPORT' AND status='ASSIGNED'",
+                Integer.class, employeeId, classId);
+        return count != null && count > 0;
     }
 
     private List<String> teacherNames(String classId) {

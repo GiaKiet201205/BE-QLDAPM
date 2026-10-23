@@ -1,6 +1,7 @@
 package com.example.demo.dto;
 
 import jakarta.validation.Valid;
+import com.example.demo.service.ClassSessionService.PlannedSessionInput;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,7 +27,8 @@ public final class ClassDtos {
             @NotBlank @Size(max = 150) String name,
             @NotNull LocalDate startDate,
             @NotNull LocalDate endDate,
-            @Valid @NotNull List<TargetRequirementInput> targetRequirements
+            @Valid @NotNull List<TargetRequirementInput> targetRequirements,
+            @Valid List<PlannedSessionInput> plannedSessions
     ) {}
 
     public record ChangeStatusRequest(@NotBlank String status) {}
