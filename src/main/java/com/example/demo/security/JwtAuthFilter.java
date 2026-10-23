@@ -13,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -45,11 +44,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()
-                        || !userDetails.isAccountNonExpired() || !userDetails.isCredentialsNonExpired()) {
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account is inactive");
-                    return;
-                }
                 if (jwtUtil.isTokenValid(token, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -57,7 +51,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
+        } catch (JwtException | IllegalArgumentException ex) {
             // Token khong hop le hoac het han -> bo qua, request se bi tu choi boi Security filter chain
         }
 
