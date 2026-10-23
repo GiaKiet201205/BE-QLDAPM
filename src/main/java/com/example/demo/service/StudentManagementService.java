@@ -28,6 +28,7 @@ public class StudentManagementService {
     );
 
     private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
     private final StudentTargetRepository studentTargetRepository;
     private final ClassStudentRepository classStudentRepository;
     private final AcademicClassRepository classRepository;
@@ -357,7 +358,20 @@ public class StudentManagementService {
     private void validateOptionalCourseTargets(String courseId, Map<String, BigDecimal> values) {
         TargetRule rule = targetRule(courseId);
         if (rule == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Student target contains an unsupported course");
+            // Custom courses have administrator-defined target types. Validate the
+            // course and numeric values without inventing a hardcoded score scale.
+            if (!courseRepository.existsById(courseId)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Student target contains an unknown course");
+            }
+            if (values != null) {
+                values.forEach((type, score) -> {
+                    if (type == null || type.isBlank() || score == null || score.signum() < 0) {
+                        throw new ApiException(HttpStatus.BAD_REQUEST,
+                            "Custom course targets must have a name and a nonnegative value");
+                    }
+                });
+            }
+            return;
         }
         if (values == null || values.isEmpty()) return;
 

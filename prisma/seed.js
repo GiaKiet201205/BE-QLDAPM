@@ -226,6 +226,49 @@ async function main() {
     },
   });
 
+  // The seeded RUNNING TOEFL class must have at least one assigned Teacher.
+  // These dates are historical sample data; new real assignments use approved availability.
+  await prisma.teachingSchedule.upsert({
+    where: { teachingScheduleId: "teaching-003" },
+    update: {},
+    create: {
+      teachingScheduleId: "teaching-003",
+      teacherId: "teacher-002",
+      classId: "class-0003",
+      date: new Date("2026-11-10"),
+      startTime: new Date("1970-01-01T18:00:00Z"),
+      endTime: new Date("1970-01-01T20:00:00Z"),
+      status: "ASSIGNED",
+      assignedById: "emp-tc-001",
+    },
+  });
+
+  // Planned sessions exist independently of staffing, including on a fresh DB
+  // where migrations run before the seed creates the teaching schedule.
+  const plannedSeed = [
+    ["seed-session-0001", "class-0001", "2026-10-06", "18:30", "20:30"],
+    ["seed-session-0002", "class-0002", "2026-11-02", "18:00", "20:00"],
+    ["seed-session-0003", "class-0003", "2026-11-10", "18:00", "20:00"],
+    ["seed-session-0006", "class-0006", "2026-11-03", "18:00", "20:00"],
+  ];
+  for (const [classSessionId, classId, date, start, end] of plannedSeed) {
+    const slotDate = new Date(date);
+    const slotStart = new Date(`1970-01-01T${start}:00Z`);
+    const slotEnd = new Date(`1970-01-01T${end}:00Z`);
+    await prisma.classSession.upsert({
+      where: {
+        classId_date_startTime_endTime: {
+          classId, date: slotDate, startTime: slotStart, endTime: slotEnd,
+        },
+      },
+      update: {},
+      create: {
+        classSessionId, classId, date: slotDate,
+        startTime: slotStart, endTime: slotEnd, status: "PLANNED",
+      },
+    });
+  }
+
   // --- PHẦN THÊM DỮ LIỆU TỰ ĐỘNG ---
 
   // 1. AppFunction
@@ -345,7 +388,7 @@ async function main() {
         name: `Lớp học mở rộng ${i}`,
         startDate: new Date("2026-10-01"),
         endDate: new Date("2026-12-31"),
-        status: "DRAFT",
+        status: "READY",
       },
     });
 
@@ -385,8 +428,8 @@ async function main() {
         studentTargetId: `auto-st-${i}`,
         studentId: autoStudentId,
         courseId: autoCourseId,
-        targetType: "TARGET_OVERALL",
-        targetValue: 6.5,
+        targetType: "OVERALL_SCORE",
+        targetValue: 7.0,
       },
     });
 
@@ -428,9 +471,9 @@ async function main() {
       create: {
         availabilityId: `auto-avail-${i}`,
         employeeId: autoEmployeeId,
-        availableDate: new Date("2026-10-15"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T12:00:00Z"),
+        availableDate: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
         status: "approved",
       },
     });
@@ -449,20 +492,22 @@ async function main() {
       },
     });
 
-    await prisma.staffSchedule.upsert({
-      where: { staffScheduleId: `auto-ss-${i}` },
+    await prisma.classSession.upsert({
+      where: { classSessionId: `auto-session-${i}` },
       update: {},
       create: {
-        staffScheduleId: `auto-ss-${i}`,
-        employeeId: autoEmployeeId,
+        classSessionId: `auto-session-${i}`,
         classId: autoClassId,
-        date: new Date("2026-10-21"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T17:00:00Z"),
-        workType: "FULL_TIME",
-        status: "ASSIGNED",
+        date: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
+        status: "PLANNED",
       },
     });
+
+    // Do not seed staff shifts for TEACHER users; these shifts cannot be
+    // created through the role-validated scheduling API.
+
   }
 
   // 9. Assignment, Exam, StudentResult

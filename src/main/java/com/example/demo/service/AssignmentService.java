@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.dto.SchedulingDtos.StaffRequest;
 import com.example.demo.dto.SchedulingDtos.TeachingRequest;
+import com.example.demo.dto.SchedulingDtos.TeachingBatchRequest;
+import com.example.demo.dto.SchedulingDtos.SupportBatchRequest;
 import com.example.demo.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -106,6 +108,14 @@ public class AssignmentService {
         if (data.date().isBefore(start)||data.date().isAfter(end)) {
             throw new ApiException(HttpStatus.BAD_REQUEST,"Teaching date outside class period");
         }
+        Integer planned=db.queryForObject(
+            "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+            "AND start_time=? AND end_time=? AND status='PLANNED'",
+            Integer.class,data.classId(),data.date(),data.startTime(),data.endTime());
+        if (planned == null || planned == 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "TC must assign a teacher to an existing planned class session, without changing its time");
+        }
         if (!access.hasApprovedAvailability(data.teacherId(),data.date(),
                 data.startTime(),data.endTime(),data.campus())) {
             throw new ApiException(HttpStatus.CONFLICT,"No approved availability covering this teaching session");
@@ -124,6 +134,60 @@ public class AssignmentService {
 
     private void lockClass(String id) {
         db.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",String.class,id);
+    }
+
+    private List<Map<String,Object>> requireBatchSessions(String classId, List<String> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty() || sessionIds.size() > 50
+                || sessionIds.size() != sessionIds.stream().distinct().count()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Choose 1-50 different planned sessions");
+        }
+        List<Map<String,Object>> sessions = new java.util.ArrayList<>();
+        for (String sessionId : sessionIds) {
+            List<Map<String,Object>> rows = db.queryForList(
+                "SELECT date,start_time,end_time FROM class_sessions " +
+                "WHERE class_session_id=? AND class_id=? AND status='PLANNED'",
+                sessionId, classId);
+            if (rows.isEmpty()) {
+                throw new ApiException(HttpStatus.NOT_FOUND,
+                    "A selected session no longer exists in this class plan");
+            }
+            sessions.add(rows.get(0));
+        }
+        return sessions;
+    }
+
+    @Transactional
+    public List<Map<String,Object>> assignTeacherBatch(TeachingBatchRequest data) {
+        access.requireRole("TC");
+        var sessions = requireBatchSessions(data.classId(), data.sessionIds());
+        List<Map<String,Object>> created = new java.util.ArrayList<>();
+        for (Map<String,Object> slot : sessions) {
+            created.add(assignTeacher(new TeachingRequest(
+                data.teacherId(), data.classId(),
+                ((java.sql.Date)slot.get("date")).toLocalDate(),
+                java.time.LocalTime.parse(slot.get("start_time").toString()),
+                java.time.LocalTime.parse(slot.get("end_time").toString()),
+                data.campus(), null
+            )));
+        }
+        return created;
+    }
+
+    @Transactional
+    public List<Map<String,Object>> assignSupportBatch(SupportBatchRequest data) {
+        access.requireRole("CM");
+        var sessions = requireBatchSessions(data.classId(), data.sessionIds());
+        List<Map<String,Object>> created = new java.util.ArrayList<>();
+        for (Map<String,Object> slot : sessions) {
+            created.add(assignStaff(new StaffRequest(
+                data.employeeId(), "CS", data.workplaceId(), data.classId(),
+                ((java.sql.Date)slot.get("date")).toLocalDate(),
+                java.time.LocalTime.parse(slot.get("start_time").toString()),
+                java.time.LocalTime.parse(slot.get("end_time").toString()),
+                "CLASS_SUPPORT"
+            )));
+        }
+        return created;
     }
 
     @Transactional
@@ -153,6 +217,19 @@ public class AssignmentService {
         List<String> cls=java.util.stream.Stream.of((String)old.get("classId"),data.classId())
             .distinct().sorted().toList();
         cls.forEach(this::lockClass);
+        // Once Running, the timetable is fixed; changing the teacher is allowed
+        // but moving a session requires a separately approved timetable change.
+        Integer running=db.queryForObject(
+            "SELECT count(*) FROM classes WHERE class_id=? AND status='RUNNING'",
+            Integer.class,old.get("classId"));
+        if (running != null && running > 0 &&
+            (!old.get("classId").equals(data.classId()) ||
+             !old.get("date").toString().equals(data.date().toString()) ||
+             !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+             !old.get("endTime").toString().startsWith(data.endTime().toString()))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class timetable is locked; reassign the teacher without changing the slot");
+        }
         validateTeacher(data,id);
         db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=? " +
             "WHERE teaching_schedule_id=?",data.teacherId(),data.classId(),data.date(),
@@ -166,6 +243,20 @@ public class AssignmentService {
         var actor=access.requireRole("TC");
         Map<String,Object> old=teacherSlot(id);
         access.lockEmployee((String)old.get("teacherId"));
+        // Do not leave an active class without a teacher for one of its planned lessons.
+        Integer running=db.queryForObject(
+            "SELECT count(*) FROM classes WHERE class_id=? AND status='RUNNING'",
+            Integer.class,old.get("classId"));
+        if (running != null && running > 0 && "ASSIGNED".equals(old.get("status"))) {
+            Integer alternatives=db.queryForObject(
+                "SELECT count(*) FROM teaching_schedules WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='ASSIGNED' AND teaching_schedule_id<>?",
+                Integer.class,old.get("classId"),old.get("date"),old.get("startTime"),old.get("endTime"),id);
+            if (alternatives == null || alternatives == 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Reassign another teacher before cancelling the only teacher for a running class session");
+            }
+        }
         db.update("UPDATE teaching_schedules SET status='CANCELLED' WHERE teaching_schedule_id=?",id);
         access.audit(actor,"CANCEL_TEACHING_SCHEDULE","TEACHING_SCHEDULE",id);
     }
@@ -191,6 +282,14 @@ public class AssignmentService {
             if (statuses.isEmpty()||!List.of("READY","RUNNING").contains(statuses.get(0))) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,"Class must be READY or RUNNING");
             }
+            Integer planned=db.queryForObject(
+                "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                "AND start_time=? AND end_time=? AND status='PLANNED'",
+                Integer.class,data.classId(),data.date(),data.startTime(),data.endTime());
+            if (planned == null || planned == 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "CS support must match a planned class session exactly");
+            }
         }
         Integer conflict=db.queryForObject(
             "SELECT count(*) FROM staff_schedules WHERE employee_id=? AND date=? AND status='ASSIGNED' " +
@@ -203,6 +302,10 @@ public class AssignmentService {
     public Map<String,Object> assignStaff(StaffRequest data) {
         var actor=access.requireRole("CM");
         access.lockEmployee(data.employeeId());
+        if ("CS".equalsIgnoreCase(data.staffRole()) &&
+            "CLASS_SUPPORT".equals(data.workType()) && data.classId()!=null) {
+            lockClass(data.classId());
+        }
         validateStaff(data,"");
         String id=UUID.randomUUID().toString();
         String classId="CS".equalsIgnoreCase(data.staffRole())&&"CLASS_SUPPORT".equals(data.workType())
@@ -222,6 +325,8 @@ public class AssignmentService {
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
         java.util.stream.Stream.of((String)old.get("employeeId"),data.employeeId())
             .distinct().sorted().forEach(access::lockEmployee);
+        java.util.stream.Stream.of((String)old.get("classId"),data.classId())
+            .filter(java.util.Objects::nonNull).distinct().sorted().forEach(this::lockClass);
         validateStaff(data,id);
         String classId="CS".equalsIgnoreCase(data.staffRole())&&"CLASS_SUPPORT".equals(data.workType())
             ?data.classId():null;
