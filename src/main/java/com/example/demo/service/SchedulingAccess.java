@@ -31,19 +31,6 @@ public class SchedulingAccess {
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Authentication required");
         }
-        // System admins do not require an Employee record in this schema.
-        // Their privileges still come from Spring Security and an active users row.
-        boolean adminAuthority = authentication.getAuthorities().stream()
-                .anyMatch(granted -> "ROLE_ADMIN".equals(granted.getAuthority()));
-        if (adminAuthority) {
-            Integer activeAdmin = jdbc.queryForObject(
-                "SELECT count(*) FROM users WHERE username=? AND status='ACTIVE' AND role_id='ADMIN'",
-                Integer.class, authentication.getName());
-            if (activeAdmin != null && activeAdmin > 0) {
-                return new StaffIdentity(null, authentication.getName(), "ADMIN");
-            }
-            throw new ApiException(HttpStatus.FORBIDDEN, "Active administrator required");
-        }
         var employees = jdbc.query(
             "SELECT e.employee_id, e.username, u.role_id FROM employees e " +
             "JOIN users u ON e.username=u.username " +
