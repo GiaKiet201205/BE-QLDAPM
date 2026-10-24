@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.Map;
 
 /**
@@ -34,7 +35,14 @@ public class ClassStaffingRangeService {
     private final AssignmentService assignments;
 
     public record RangeRequest(String role, String employeeId, String campus,
-                               String workplaceId, String mode, List<String> sessionIds) {}
+                               String workplaceId, String mode, List<String> sessionIds,
+                               String scope) {
+        // Preserve existing Java call sites; scope is explicit for the new FE.
+        public RangeRequest(String role, String employeeId, String campus,
+                            String workplaceId, String mode, List<String> sessionIds) {
+            this(role, employeeId, campus, workplaceId, mode, sessionIds, null);
+        }
+    }
 
     private String roleAndPermission(String requested) {
         String role = requested == null ? "" : requested.trim().toUpperCase(Locale.ROOT);
@@ -83,6 +91,11 @@ public class ClassStaffingRangeService {
         String mode = request.mode() == null ? "FILL_EMPTY" : request.mode().trim().toUpperCase(Locale.ROOT);
         if (!List.of("FILL_EMPTY", "REPLACE").contains(mode)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "mode must be FILL_EMPTY or REPLACE");
+        }
+        String requestedScope = request.scope() == null ? "PERIOD" :
+                request.scope().trim().toUpperCase(Locale.ROOT);
+        if (!List.of("COURSE", "PERIOD", "SINGLE").contains(requestedScope)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "scope must be COURSE, PERIOD or SINGLE");
         }
         List<String> ids = request.sessionIds();
         if (ids == null || ids.isEmpty() || ids.size() > MAX_SESSIONS ||
@@ -174,6 +187,50 @@ public class ClassStaffingRangeService {
             } catch (ApiException ex) {
                 throw new ApiException(ex.getStatus(),
                     "Cannot assign lesson " + date + " " + start + "-" + end + ": " + ex.getMessage());
+            }
+        }
+        if ("CS".equals(role)) {
+            if ("COURSE".equals(requestedScope)) {
+                // Only an explicit full-course assignment by CM confers ongoing
+                // class-management rights. A single support shift never does.
+                Integer plannedCount = db.queryForObject(
+                    "SELECT count(*) FROM class_sessions WHERE class_id=? AND status='PLANNED'",
+                    Integer.class, classId);
+                Integer coveredCount = db.queryForObject(
+                    "SELECT count(*) FROM class_sessions lesson WHERE lesson.class_id=? " +
+                    "AND lesson.status='PLANNED' AND EXISTS (SELECT 1 FROM staff_schedules staff " +
+                    "WHERE staff.class_id=lesson.class_id AND staff.date=lesson.date " +
+                    "AND staff.start_time=lesson.start_time AND staff.end_time=lesson.end_time " +
+                    "AND staff.employee_id=? AND staff.work_type='CLASS_SUPPORT' AND staff.status='ASSIGNED')",
+                    Integer.class, classId, request.employeeId());
+                if (plannedCount == null || coveredCount == null ||
+                    plannedCount == 0 || !plannedCount.equals(coveredCount)) {
+                    throw new ApiException(HttpStatus.CONFLICT,
+                        "Whole-course CS management requires active coverage of every planned lesson. " +
+                        "Replace conflicting support shifts first or choose a period.");
+                }
+                db.update(
+                    "UPDATE class_access_scopes SET status='INACTIVE' " +
+                    "WHERE class_id=? AND source='CM_ASSIGNED_COURSE' AND employee_id<>? AND status='ACTIVE'",
+                    classId, request.employeeId());
+                db.update(
+                    "INSERT INTO class_access_scopes " +
+                    "(class_access_scope_id,employee_id,class_id,status,source) " +
+                    "VALUES (?,?,?,'ACTIVE','CM_ASSIGNED_COURSE') " +
+                    "ON CONFLICT (employee_id,class_id) DO UPDATE " +
+                    "SET status='ACTIVE', source='CM_ASSIGNED_COURSE'",
+                    UUID.randomUUID().toString(), request.employeeId(), classId);
+                access.audit(actor, "ASSIGN_CS_COURSE_MANAGER", "CLASS", classId);
+            } else {
+                // A substituted CS must not inherit all-class permissions;
+                // deactivate old CM management if they now have zero assigned lessons.
+                db.update(
+                    "UPDATE class_access_scopes scope SET status='INACTIVE' " +
+                    "WHERE scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                    "AND scope.status='ACTIVE' AND NOT EXISTS " +
+                    "(SELECT 1 FROM staff_schedules ss WHERE ss.class_id=scope.class_id " +
+                    "AND ss.employee_id=scope.employee_id AND ss.work_type='CLASS_SUPPORT' " +
+                    "AND ss.status='ASSIGNED')", classId);
             }
         }
         return Map.of("createdCount", created.size(), "unchangedCount", skipped,
