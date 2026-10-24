@@ -230,9 +230,10 @@ public class ClassSessionService {
             "SELECT class_id, start_date, end_date, status FROM classes WHERE class_id=? FOR UPDATE", classId);
         if (classes.isEmpty()) throw new ApiException(HttpStatus.NOT_FOUND, "Class not found");
         Map<String,Object> row = classes.get(0);
-        if (!Set.of("DRAFT", "READY").contains(row.get("status"))) {
-            throw new ApiException(HttpStatus.CONFLICT, "Plan can only change while class is Draft or Ready");
+        if (!Set.of("DRAFT", "READY", "RUNNING").contains(row.get("status"))) {
+            throw new ApiException(HttpStatus.CONFLICT, "Plan cannot change after class completion");
         }
+        boolean running = "RUNNING".equals(row.get("status"));
         if (input == null || input.size() > 400) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Plan must contain at most 400 lessons");
         }
@@ -279,16 +280,53 @@ public class ClassSessionService {
         List<Map<String,Object>> previous = db.queryForList(
             "SELECT class_session_id, date,start_time,end_time FROM class_sessions " +
             "WHERE class_id=? AND status='PLANNED' FOR UPDATE", classId);
+        Set<Slot> old = previous.stream()
+                .map(item -> new Slot(((Date)item.get("date")).toLocalDate(),
+                        LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString())))
+                .collect(Collectors.toSet());
+        if (running) {
+            // Extending a running course is append-only: no existing planned lesson
+            // is allowed to vanish or change time. Past lessons remain historical.
+            if (!desired.containsAll(old)) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class timetable is append-only; reschedule a future lesson using the dedicated workflow");
+            }
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+            for (Slot slot : desired) {
+                if (old.contains(slot)) continue;
+                if (!LocalDateTime.of(slot.date(), slot.start()).isAfter(now)) {
+                    throw new ApiException(HttpStatus.CONFLICT,
+                        "New lessons on a Running class must start in the future");
+                }
+                Integer cancelled = db.queryForObject(
+                    "SELECT count(*) FROM class_sessions WHERE class_id=? AND date=? " +
+                    "AND start_time=? AND end_time=? AND status='CANCELLED'",
+                    Integer.class, classId, slot.date(), slot.start(), slot.end());
+                if (cancelled != null && cancelled > 0) {
+                    throw new ApiException(HttpStatus.CONFLICT,
+                        "A cancelled lesson cannot be reactivated; create another future slot");
+                }
+            }
+        }
+        if (!"DRAFT".equals(row.get("status"))) {
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+            for (Map<String,Object> item : previous) {
+                Slot slot = new Slot(((Date)item.get("date")).toLocalDate(),
+                        LocalTime.parse(item.get("start_time").toString()),
+                        LocalTime.parse(item.get("end_time").toString()));
+                if (!desired.contains(slot) &&
+                    !LocalDateTime.of(slot.date(), slot.start()).isAfter(now)) {
+                    throw new ApiException(HttpStatus.CONFLICT,
+                        "Past class lessons cannot be removed; preserve the academic and staffing history");
+                }
+            }
+        }
         for (Map<String,Object> item : previous) {
             Slot slot = new Slot(((Date)item.get("date")).toLocalDate(),
                     LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString()));
             if (!desired.contains(slot)) db.update("DELETE FROM class_sessions WHERE class_session_id=? AND status='PLANNED'",
                     item.get("class_session_id"));
         }
-        Set<Slot> old = previous.stream()
-                .map(item -> new Slot(((Date)item.get("date")).toLocalDate(),
-                        LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString())))
-                .collect(Collectors.toSet());
         for (Slot slot : desired) {
             if (!old.contains(slot)) {
                 int revived = db.update(
