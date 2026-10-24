@@ -387,7 +387,8 @@ public class AssignmentService {
                 "ELSE 'CM_ASSIGNED_COURSE' END " +
                 "FROM classes c, employees e " +
                 "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
-                "AND scope.class_id=? AND scope.employee_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                "AND scope.class_id=? AND scope.employee_id=? AND scope.source IN " +
+                "('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
                 "AND scope.status='ACTIVE' AND NOT EXISTS (" +
                 "SELECT 1 FROM staff_schedules s WHERE s.class_id=scope.class_id " +
                 "AND s.employee_id=scope.employee_id AND s.work_type='CLASS_SUPPORT' " +
