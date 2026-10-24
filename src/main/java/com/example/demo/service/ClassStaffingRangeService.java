@@ -210,8 +210,14 @@ public class ClassStaffingRangeService {
                         "Replace conflicting support shifts first or choose a period.");
                 }
                 db.update(
-                    "UPDATE class_access_scopes SET status='INACTIVE' " +
-                    "WHERE class_id=? AND source='CM_ASSIGNED_COURSE' AND employee_id<>? AND status='ACTIVE'",
+                    "UPDATE class_access_scopes scope SET " +
+                    "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+                    "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
+                    "ELSE 'CM_ASSIGNED_COURSE' END " +
+                    "FROM classes c, employees e " +
+                    "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
+                    "AND scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                    "AND scope.employee_id<>? AND scope.status='ACTIVE'",
                     classId, request.employeeId());
                 db.update(
                     "INSERT INTO class_access_scopes " +
@@ -225,8 +231,12 @@ public class ClassStaffingRangeService {
                 // A substituted CS must not inherit all-class permissions;
                 // deactivate old CM management if they now have zero assigned lessons.
                 db.update(
-                    "UPDATE class_access_scopes scope SET status='INACTIVE' " +
-                    "WHERE scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                    "UPDATE class_access_scopes scope SET " +
+                    "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+                    "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
+                    "ELSE 'CM_ASSIGNED_COURSE' END FROM classes c, employees e " +
+                    "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
+                    "AND scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
                     "AND scope.status='ACTIVE' AND NOT EXISTS " +
                     "(SELECT 1 FROM staff_schedules ss WHERE ss.class_id=scope.class_id " +
                     "AND ss.employee_id=scope.employee_id AND ss.work_type='CLASS_SUPPORT' " +
