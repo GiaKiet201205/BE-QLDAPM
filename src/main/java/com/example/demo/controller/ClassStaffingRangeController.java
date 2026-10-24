@@ -22,9 +22,6 @@ public class ClassStaffingRangeController {
 
     @PostMapping
     public Map<String,Object> assignRange(@PathVariable String classId, @RequestBody RangeRequest request) {
-        if (request != null && request.role() != null && request.role().isBlank()) {
-            throw new IllegalArgumentException("Role is required");
-        }
         return service.assignRange(classId, request);
     }
 }
