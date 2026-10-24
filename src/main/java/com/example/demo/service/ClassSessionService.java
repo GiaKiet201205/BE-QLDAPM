@@ -57,18 +57,32 @@ public class ClassSessionService {
     private boolean manages(String classId, Identity actor) {
         if ("ADMIN".equals(actor.role())) return true;
         if (!"CS".equals(actor.role())) return false;
+        // A one-off CLASS_SUPPORT shift confers viewing and attendance rights,
+        // never permission to rewrite the entire class timetable.
         Integer count = db.queryForObject(
             "SELECT count(*) FROM employees e JOIN users u ON u.username=e.username " +
-            "WHERE e.username=? AND e.status='ACTIVE' AND u.status='ACTIVE' AND (" +
-            "EXISTS(SELECT 1 FROM class_access_scopes a WHERE a.employee_id=e.employee_id AND a.class_id=? AND a.status='ACTIVE') " +
-            "OR EXISTS(SELECT 1 FROM staff_schedules s WHERE s.employee_id=e.employee_id AND s.class_id=? " +
-            "AND s.work_type='CLASS_SUPPORT' AND s.status='ASSIGNED'))",
-            Integer.class, actor.username(), classId, classId);
+            "JOIN classes c ON c.class_id=? " +
+            "JOIN class_access_scopes a ON a.employee_id=e.employee_id AND a.class_id=c.class_id " +
+            "WHERE e.username=? AND e.status='ACTIVE' AND u.status='ACTIVE' " +
+            "AND a.status='ACTIVE' AND (a.source='CM_ASSIGNED_COURSE' " +
+            "OR (a.source='CREATED_BY_CS' AND c.status IN ('DRAFT','READY')))",
+            Integer.class, classId, actor.username());
         return count != null && count > 0;
     }
 
     private boolean canView(String classId, Identity actor) {
         if (manages(classId, actor) || Set.of("TC", "CM").contains(actor.role())) return true;
+        if ("CS".equals(actor.role())) {
+            Integer count = db.queryForObject(
+                "SELECT count(*) FROM employees e JOIN users u ON u.username=e.username " +
+                "WHERE e.username=? AND e.status='ACTIVE' AND u.status='ACTIVE' AND (" +
+                "EXISTS(SELECT 1 FROM class_access_scopes a WHERE a.employee_id=e.employee_id " +
+                "AND a.class_id=? AND a.status='ACTIVE') OR " +
+                "EXISTS(SELECT 1 FROM staff_schedules s WHERE s.employee_id=e.employee_id " +
+                "AND s.class_id=? AND s.work_type='CLASS_SUPPORT' AND s.status='ASSIGNED'))",
+                Integer.class, actor.username(), classId, classId);
+            return count != null && count > 0;
+        }
         if (!"TEACHER".equals(actor.role())) return false;
         Integer count = db.queryForObject(
             "SELECT count(*) FROM teaching_schedules t JOIN employees e ON t.teacher_id=e.employee_id " +
