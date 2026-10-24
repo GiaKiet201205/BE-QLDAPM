@@ -216,7 +216,8 @@ public class ClassStaffingRangeService {
                     "ELSE 'CM_ASSIGNED_COURSE' END " +
                     "FROM classes c, employees e " +
                     "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
-                    "AND scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                    "AND scope.class_id=? AND scope.source IN " +
+                    "('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
                     "AND scope.employee_id<>? AND scope.status='ACTIVE'",
                     classId, request.employeeId());
                 db.update(
@@ -236,7 +237,8 @@ public class ClassStaffingRangeService {
                     "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
                     "ELSE 'CM_ASSIGNED_COURSE' END FROM classes c, employees e " +
                     "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
-                    "AND scope.class_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                    "AND scope.class_id=? AND scope.source IN " +
+                    "('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
                     "AND scope.status='ACTIVE' AND NOT EXISTS " +
                     "(SELECT 1 FROM staff_schedules ss WHERE ss.class_id=scope.class_id " +
                     "AND ss.employee_id=scope.employee_id AND ss.work_type='CLASS_SUPPORT' " +
