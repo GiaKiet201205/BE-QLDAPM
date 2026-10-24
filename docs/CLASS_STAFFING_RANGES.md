@@ -84,3 +84,32 @@ For the historical rule, a replacement of a lesson that has already begun is rej
 **Extending:** change the permitted class end date first, then add future planned lessons (the class timetable editor supports append-only on RUNNING). TC/CM explicitly staff the new lessons after availability and conflict checks. Previously assigned sessions stay attached to their original dates. The frontend reloads timetable data when either class date changes.
 
 **Regression checks:** reject RUNNING start-date edits; reject COMPLETED/CLOSED date edits; reject shortening across planned or assigned sessions; append new future lessons on RUNNING; reject deletion/edit of existing RUNNING lessons or past READY lessons; verify extending refreshes Schedule without moving pre-existing assignments.
+
+
+## CS visibility, course management and attendance permissions
+
+The CS Class Management list intentionally includes classes a CS **created**, classes a CM assigned them to manage **for the full course**, and classes where they support **at least one currently assigned lesson**. Visibility is **not** proof of assignment to every lesson.
+
+The class list and detail payloads expose `csAccessLevel` for the authenticated CS:
+
+- `CREATOR`: CS created the class and retains an active `CREATED_BY_CS` scope. Can edit class information, student roster and timetable while DRAFT/READY, but not when RUNNING. **Does not automatically earn teacher attendance rights.**
+- `MANAGER`: CM explicitly assigned the CS to the entire course and all planned lessons are covered. This grants class-level management rights via `class_access_scopes.source='CM_ASSIGNED_COURSE'`. A replacement for one lesson does not automatically replace the course manager.
+- `SUPPORT`: CS has at least one active `staff_schedules` CLASS_SUPPORT entry. Can view the class and sessions, but **cannot** edit class metadata, roster, status or full timetable.
+- No scope and no active support assignment: not listed to that CS.
+
+CM assigns `scope:'COURSE'` through the range API to establish a course manager. The server validates all active planned lessons are covered by the chosen CS **before** granting the scope, within the same transaction. An existing complete support timetable can be confirmed again without duplicating shifts. Assigning `scope:'PERIOD'` or `'SINGLE'` does not elevate permissions. Legacy range clients with no scope use PERIOD behavior.
+
+**Attendance is always narrower than class visibility:** an authenticated CS must have an active CLASS_SUPPORT assignment with matching `classId/date/startTime/endTime` to record PRESENT/ABSENT/LATE for that lesson, including past lessons. This is enforced server-side; a CREATOR or MANAGER title alone does not permit marks on uncovered lessons.
+
+**Revocation:** CM replaces a whole-course manager by performing another validated COURSE assignment. On course replacement the previous CM-assigned scope is disabled. If a CM cancels the final class-support shift held by a CM-assigned manager, their course-manager scope is also deactivated. A one-off substitute does not inherit class-level permissions.
+
+### Key regression scenarios
+
+1. CS who originally created a DRAFT class sees **CS tạo lớp** and can edit its draft details, but cannot mark a teacher without an exact dated support shift.
+2. CS who only supports one lesson sees **Hỗ trợ từng buổi**, can view Schedule, but gets 403 from PUT class details, student roster edits and planned-session replace.
+3. CM selects full-course staffing for CS001; once all active lessons have CS001, Class API reports **MANAGER**. CS001 can manage the class and mark any past lesson they actually covered.
+4. CM selects only one lesson for CS002. CS002 receives support visibility, but has no ability to edit the whole class or mark an unrelated lesson.
+5. A class creator cannot keep editing a RUNNING course unless CM has separately assigned them as course manager.
+6. CM reconfirms a pre-existing fully staffed course for CS001; no duplicate shift records are inserted.
+7. Cancelling CS001's final CLASS_SUPPORT shift revokes CM course-manager scope.
+8. Other CS roles, Teacher, Admin and Payroll remain outside the new permission model.
