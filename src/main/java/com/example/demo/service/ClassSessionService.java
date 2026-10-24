@@ -64,7 +64,8 @@ public class ClassSessionService {
             "JOIN classes c ON c.class_id=? " +
             "JOIN class_access_scopes a ON a.employee_id=e.employee_id AND a.class_id=c.class_id " +
             "WHERE e.username=? AND e.status='ACTIVE' AND u.status='ACTIVE' " +
-            "AND a.status='ACTIVE' AND (a.source='CM_ASSIGNED_COURSE' " +
+            "AND a.status='ACTIVE' AND (a.source IN " +
+            "('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
             "OR (a.source='CREATED_BY_CS' AND c.status IN ('DRAFT','READY')))",
             Integer.class, classId, actor.username());
         return count != null && count > 0;
