@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -48,7 +50,7 @@ public class ClassStaffingRangeService {
         String table = "TEACHER".equals(role) ? "teaching_schedules" : "staff_schedules";
         String id = "TEACHER".equals(role) ? "teaching_schedule_id" : "staff_schedule_id";
         String employee = "TEACHER".equals(role) ? "teacher_id" : "employee_id";
-        String work = "CS".equals(role) ? " AND a.work_type='CLASS_SUPPORT'" : "";
+        String work = "CS".equals(role) ? " AND z.work_type='CLASS_SUPPORT'" : "";
         return db.queryForList(
             "SELECT s.class_session_id AS id, s.date, " +
             "s.start_time AS \"startTime\", s.end_time AS \"endTime\", " +
@@ -88,6 +90,7 @@ public class ClassStaffingRangeService {
                 new HashSet<>(ids).size() != ids.size()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Choose 1-400 unique planned lessons");
         }
+        var actor = access.requireRole("TEACHER".equals(role) ? "TC" : "CM");
         access.requireEmployeeRole(request.employeeId(), role);
         requireClass(classId);
         // Class-level lock serializes range changes and keeps an all-or-nothing result.
@@ -136,7 +139,7 @@ public class ClassStaffingRangeService {
                     throw new ApiException(HttpStatus.CONFLICT, "Multiple staff assignments; replace individually: " + date);
                 }
                 String oldId = current.get(0).get("id").toString();
-                if (!date.isAfter(access.today())) {
+                if (!LocalDateTime.of(date, start).isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
                     // A previous teacher marked ABSENT can be replaced retroactively,
                     // but never overwrite present/late attendance or CS historical coverage.
                     String oldAttendance = "TEACHER".equals(role) ? db.query(
@@ -151,6 +154,8 @@ public class ClassStaffingRangeService {
                 }
                 db.update("UPDATE " + table + " SET status='CANCELLED' WHERE " + idColumn +
                     "=? AND status='ASSIGNED'", oldId);
+                access.audit(actor, "REPLACE_" + role + "_LESSON",
+                        "TEACHER".equals(role) ? "TEACHING_SCHEDULE" : "STAFF_SCHEDULE", oldId);
             }
 
             if ("TEACHER".equals(role)) {
