@@ -210,6 +210,10 @@ public class AssignmentService {
         var actor=access.requireRole("TC");
         Map<String,Object> old=teacherSlot(id);
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
+        if (!old.get("teacherId").equals(data.teacherId())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Use class-planning staffing replacement to change a teacher and retain attendance history");
+        }
         // Lock both people deterministically to avoid races during reassignment.
         List<String> ids=java.util.stream.Stream.of((String)old.get("teacherId"),data.teacherId())
             .distinct().sorted().toList();
@@ -343,6 +347,15 @@ public class AssignmentService {
         var actor=access.requireRole("CM");
         Map<String,Object> old=staffSlot(id);
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
+        if ("CLASS_SUPPORT".equals(old.get("workType")) &&
+            (!old.get("employeeId").equals(data.employeeId()) ||
+             !java.util.Objects.equals(old.get("classId"), data.classId()) ||
+             !old.get("date").toString().equals(data.date().toString()) ||
+             !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+             !old.get("endTime").toString().startsWith(data.endTime().toString()))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Use class-planning staffing replacement to change a CS support lesson");
+        }
         java.util.stream.Stream.of((String)old.get("employeeId"),data.employeeId())
             .distinct().sorted().forEach(access::lockEmployee);
         java.util.stream.Stream.of((String)old.get("classId"),data.classId())
