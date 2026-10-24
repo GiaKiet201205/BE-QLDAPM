@@ -348,7 +348,8 @@ public class AssignmentService {
         Map<String,Object> old=staffSlot(id);
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
         if ("CLASS_SUPPORT".equals(old.get("workType")) &&
-            (!old.get("employeeId").equals(data.employeeId()) ||
+            (!old.get("workType").equals(data.workType()) ||
+             !old.get("employeeId").equals(data.employeeId()) ||
              !java.util.Objects.equals(old.get("classId"), data.classId()) ||
              !old.get("date").toString().equals(data.date().toString()) ||
              !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
@@ -376,6 +377,18 @@ public class AssignmentService {
         Map<String,Object> old=staffSlot(id);
         access.lockEmployee((String)old.get("employeeId"));
         db.update("UPDATE staff_schedules SET status='CANCELLED' WHERE staff_schedule_id=?",id);
+        if ("CLASS_SUPPORT".equals(old.get("workType")) && old.get("classId") != null) {
+            // A CM-assigned course manager who no longer supports any lesson
+            // must not retain class-wide edit rights indefinitely.
+            db.update(
+                "UPDATE class_access_scopes scope SET status='INACTIVE' " +
+                "WHERE scope.class_id=? AND scope.employee_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                "AND scope.status='ACTIVE' AND NOT EXISTS (" +
+                "SELECT 1 FROM staff_schedules s WHERE s.class_id=scope.class_id " +
+                "AND s.employee_id=scope.employee_id AND s.work_type='CLASS_SUPPORT' " +
+                "AND s.status='ASSIGNED')",
+                old.get("classId"), old.get("employeeId"));
+        }
         access.audit(actor,"CANCEL_STAFF_SHIFT","STAFF_SCHEDULE",id);
     }
 }
