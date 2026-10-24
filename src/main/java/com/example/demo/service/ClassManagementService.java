@@ -102,7 +102,8 @@ public class ClassManagementService {
                     item.getCreatedByUsername(),
                     item.getCreatedAt(),
                     classStudentRepository.countByClassIdAndStatusIgnoreCase(item.getClassId(), "ACTIVE"),
-                    teacherNames
+                    teacherNames,
+                    csAccessLevel(actor, item.getClassId())
             );
         }).toList();
     }
@@ -217,7 +218,8 @@ public class ClassManagementService {
                         .map(item -> new AuditLogResponse(
                                 item.getAuditLogId(), item.getUsername(), item.getAction(),
                                 item.getDescription(), item.getCreatedAt()))
-                        .toList()
+                        .toList(),
+                csAccessLevel(actor(authentication), classId)
         );
     }
 
@@ -281,6 +283,11 @@ public class ClassManagementService {
         if ("CLOSED".equalsIgnoreCase(classItem.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Closed classes are read-only");
         }
+        boolean startChanged = !classItem.getStartDate().equals(request.startDate());
+        boolean endChanged = !classItem.getEndDate().equals(request.endDate());
+        enforceDateEditPolicy(classItem.getStatus(),
+                classItem.getStartDate(), classItem.getEndDate(),
+                request.startDate(), request.endDate());
         validateClassRequest(request, classId);
 
         boolean hasHistory =
@@ -296,15 +303,15 @@ public class ClassManagementService {
                     "Course cannot be changed after the class has history");
         }
 
-        if (!classItem.getStartDate().equals(request.startDate())
-                || !classItem.getEndDate().equals(request.endDate())) {
+        if (startChanged || endChanged) {
             Integer outsidePlan = jdbc.queryForObject(
                     "SELECT count(*) FROM class_sessions WHERE class_id=? " +
                     "AND (date < ? OR date > ?) AND status='PLANNED'",
                     Integer.class, classId, request.startDate(), request.endDate());
             if (outsidePlan != null && outsidePlan > 0) {
                 throw new ApiException(HttpStatus.CONFLICT,
-                        "Class date range cannot exclude planned lessons; adjust the timetable first");
+                        "Class date change affects " + outsidePlan + " planned lesson(s) outside the new range. " +
+                        "Edit and save the timetable in the Schedule tab first; assigned lessons must be handled by TC/CM.");
             }
             ensureClassHistoryInsideDateRange(
                     classId,
@@ -341,7 +348,10 @@ public class ClassManagementService {
         classRepository.save(classItem);
 
         audit(actor.username(), "UPDATE_CLASS", classId,
-                "Updated class " + classItem.getClassCode());
+                "Updated class " + classItem.getClassCode() +
+                (startChanged || endChanged
+                        ? "; date range: " + request.startDate() + " to " + request.endDate()
+                        : ""));
         return getClassDetail(classId, authentication);
     }
 
@@ -1090,6 +1100,20 @@ public class ClassManagementService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    static void enforceDateEditPolicy(String status, LocalDate originalStart,
+                                      LocalDate originalEnd, LocalDate newStart,
+                                      LocalDate newEnd) {
+        if (Set.of("COMPLETED", "CLOSED").contains(status) &&
+                (!originalStart.equals(newStart) || !originalEnd.equals(newEnd))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Completed or closed class dates are locked");
+        }
+        if ("RUNNING".equals(status) && !originalStart.equals(newStart)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class start date is locked; only an end-date adjustment is permitted");
+        }
+    }
+
     private void validateClassRequest(ClassUpsertRequest request, String currentClassId) {
         if (!request.startDate().isBefore(request.endDate()) && !request.startDate().isEqual(request.endDate())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
@@ -1322,9 +1346,36 @@ public class ClassManagementService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only Admin or assigned CS can manage a class");
         }
         Employee employee = requireEmployee(actor.username());
-        if (!hasCsClassAccess(employee.getEmployeeId(), classItem.getClassId())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "You do not manage this class");
+        String level = csAccessLevel(employee.getEmployeeId(), classItem.getClassId());
+        if (!canCsManage(level, classItem.getStatus())) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Only the class creator (before Running) or the CM-assigned course CS can manage this class");
         }
+    }
+
+    static boolean canCsManage(String accessLevel, String classStatus) {
+        return "MANAGER".equals(accessLevel) ||
+                ("CREATOR".equals(accessLevel) && Set.of("DRAFT", "READY").contains(classStatus));
+    }
+
+    private String csAccessLevel(Actor actor, String classId) {
+        if (!"CS".equals(actor.role())) return null;
+        return csAccessLevel(requireEmployee(actor.username()).getEmployeeId(), classId);
+    }
+
+    private String csAccessLevel(String employeeId, String classId) {
+        List<String> scopeSources = jdbc.query(
+                "SELECT source FROM class_access_scopes WHERE employee_id=? AND class_id=? AND status='ACTIVE'",
+                (rs, index) -> rs.getString(1), employeeId, classId);
+        if (scopeSources.contains("CM_ASSIGNED_COURSE") ||
+            scopeSources.contains("ASSIGNED_SCOPE") ||
+            scopeSources.contains("AUTO_ASSIGNED")) return "MANAGER";
+        if (scopeSources.contains("CREATED_BY_CS")) return "CREATOR";
+        Integer support = jdbc.queryForObject(
+                "SELECT count(*) FROM staff_schedules WHERE employee_id=? AND class_id=? " +
+                "AND work_type='CLASS_SUPPORT' AND status='ASSIGNED'",
+                Integer.class, employeeId, classId);
+        return support != null && support > 0 ? "SUPPORT" : null;
     }
 
     private boolean hasCsClassAccess(String employeeId, String classId) {
