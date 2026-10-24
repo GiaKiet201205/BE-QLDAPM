@@ -160,15 +160,20 @@ public class ClassStaffingRangeService {
                         "TEACHER".equals(role) ? "TEACHING_SCHEDULE" : "STAFF_SCHEDULE", oldId);
             }
 
-            if ("TEACHER".equals(role)) {
-                var row = assignments.assignTeacher(new TeachingRequest(
-                    request.employeeId(), classId, date, start, end, request.campus(), null));
-                created.add(row.get("id").toString());
-            } else {
-                var row = assignments.assignStaff(new StaffRequest(
-                    request.employeeId(), "CS", request.workplaceId(), classId,
-                    date, start, end, "CLASS_SUPPORT"));
-                created.add(row.get("id").toString());
+            try {
+                if ("TEACHER".equals(role)) {
+                    var row = assignments.assignTeacher(new TeachingRequest(
+                        request.employeeId(), classId, date, start, end, request.campus(), null));
+                    created.add(row.get("id").toString());
+                } else {
+                    var row = assignments.assignStaff(new StaffRequest(
+                        request.employeeId(), "CS", request.workplaceId(), classId,
+                        date, start, end, "CLASS_SUPPORT"));
+                    created.add(row.get("id").toString());
+                }
+            } catch (ApiException ex) {
+                throw new ApiException(ex.getStatus(),
+                    "Cannot assign lesson " + date + " " + start + "-" + end + ": " + ex.getMessage());
             }
         }
         return Map.of("createdCount", created.size(), "unchangedCount", skipped,
