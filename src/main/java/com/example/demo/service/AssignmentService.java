@@ -381,8 +381,13 @@ public class AssignmentService {
             // A CM-assigned course manager who no longer supports any lesson
             // must not retain class-wide edit rights indefinitely.
             db.update(
-                "UPDATE class_access_scopes scope SET status='INACTIVE' " +
-                "WHERE scope.class_id=? AND scope.employee_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
+                "UPDATE class_access_scopes scope SET " +
+                "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+                "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
+                "ELSE 'CM_ASSIGNED_COURSE' END " +
+                "FROM classes c, employees e " +
+                "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
+                "AND scope.class_id=? AND scope.employee_id=? AND scope.source='CM_ASSIGNED_COURSE' " +
                 "AND scope.status='ACTIVE' AND NOT EXISTS (" +
                 "SELECT 1 FROM staff_schedules s WHERE s.class_id=scope.class_id " +
                 "AND s.employee_id=scope.employee_id AND s.work_type='CLASS_SUPPORT' " +
