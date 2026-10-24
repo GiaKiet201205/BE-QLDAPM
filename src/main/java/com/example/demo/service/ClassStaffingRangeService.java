@@ -93,6 +93,8 @@ public class ClassStaffingRangeService {
         var actor = access.requireRole("TEACHER".equals(role) ? "TC" : "CM");
         access.requireEmployeeRole(request.employeeId(), role);
         requireClass(classId);
+        // Match the existing single-assignment lock ordering (employee, then class).
+        access.lockEmployee(request.employeeId());
         // Class-level lock serializes range changes and keeps an all-or-nothing result.
         db.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
                 String.class, classId);
