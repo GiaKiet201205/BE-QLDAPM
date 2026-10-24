@@ -17,7 +17,8 @@ The new table has `attendance_id`, `teaching_schedule_id` (FK, UNIQUE), `status`
 3. The teacher must have an `ASSIGNED` teaching schedule matching a `PLANNED` class session.
 4. Attendance may only be recorded after the lesson's scheduled start, using Asia/Ho_Chi_Minh time.
 5. Only `PRESENT`, `ABSENT`, `LATE` are accepted. Subsequent corrections update the same row and create an `audit_logs` event. Unrecorded does **not** mean absent.
-6. These endpoints do not write salary or payroll tables.
+6. TC may not change the teacher, class, date or time of a teaching assignment after attendance has been recorded against that assignment. This protects historical teacher attribution; attempts return 409.
+7. These endpoints do not write salary or payroll tables.
 
 ## API (Bearer JWT, role CS)
 
