@@ -1367,7 +1367,9 @@ public class ClassManagementService {
         List<String> scopeSources = jdbc.query(
                 "SELECT source FROM class_access_scopes WHERE employee_id=? AND class_id=? AND status='ACTIVE'",
                 (rs, index) -> rs.getString(1), employeeId, classId);
-        if (scopeSources.contains("CM_ASSIGNED_COURSE")) return "MANAGER";
+        if (scopeSources.contains("CM_ASSIGNED_COURSE") ||
+            scopeSources.contains("ASSIGNED_SCOPE") ||
+            scopeSources.contains("AUTO_ASSIGNED")) return "MANAGER";
         if (scopeSources.contains("CREATED_BY_CS")) return "CREATOR";
         Integer support = jdbc.queryForObject(
                 "SELECT count(*) FROM staff_schedules WHERE employee_id=? AND class_id=? " +
