@@ -120,16 +120,29 @@ public class AssignmentService {
                 data.startTime(),data.endTime(),data.campus())) {
             throw new ApiException(HttpStatus.CONFLICT,"No approved availability covering this teaching session");
         }
-        Integer personConflict=db.queryForObject(
-            "SELECT count(*) FROM teaching_schedules WHERE teacher_id=? AND date=? " +
-            "AND status='ASSIGNED' AND teaching_schedule_id<>? AND start_time<? AND end_time>?",
-            Integer.class,data.teacherId(),data.date(),exceptId,data.endTime(),data.startTime());
+        List<Map<String,Object>> personConflicts=db.queryForList(
+            "SELECT c.class_code AS \"classCode\", t.start_time AS \"startTime\", " +
+            "t.end_time AS \"endTime\" FROM teaching_schedules t " +
+            "JOIN classes c ON c.class_id=t.class_id " +
+            "WHERE t.teacher_id=? AND t.date=? AND t.status='ASSIGNED' " +
+            "AND t.teaching_schedule_id<>? AND t.start_time<? AND t.end_time>? " +
+            "ORDER BY t.start_time LIMIT 1",
+            data.teacherId(),data.date(),exceptId,data.endTime(),data.startTime());
+        if (!personConflicts.isEmpty()) {
+            var other=personConflicts.get(0);
+            throw new ApiException(HttpStatus.CONFLICT,
+                "TEACHER_SCHEDULE_CONFLICT: Giáo viên đã được phân công lớp " +
+                other.get("classCode") + " ngày " + data.date() +
+                " từ " + other.get("startTime") + " đến " + other.get("endTime") +
+                ". Hãy chọn giáo viên khác hoặc thay đổi lịch phân công trùng.");
+        }
         Integer classConflict=db.queryForObject(
             "SELECT count(*) FROM teaching_schedules WHERE class_id=? AND date=? " +
             "AND status='ASSIGNED' AND teaching_schedule_id<>? AND start_time<? AND end_time>?",
             Integer.class,data.classId(),data.date(),exceptId,data.endTime(),data.startTime());
-        if (personConflict!=null&&personConflict>0) throw new ApiException(HttpStatus.CONFLICT,"TEACHER_SCHEDULE_CONFLICT");
-        if (classConflict!=null&&classConflict>0) throw new ApiException(HttpStatus.CONFLICT,"CLASS_SCHEDULE_CONFLICT");
+        if (classConflict!=null&&classConflict>0)
+            throw new ApiException(HttpStatus.CONFLICT,
+                "CLASS_SCHEDULE_CONFLICT: Lớp đã có giáo viên khác được phân công trùng buổi.");
     }
 
     private void lockClass(String id) {
