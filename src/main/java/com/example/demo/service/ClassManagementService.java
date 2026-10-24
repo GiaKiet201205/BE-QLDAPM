@@ -283,15 +283,9 @@ public class ClassManagementService {
         }
         boolean startChanged = !classItem.getStartDate().equals(request.startDate());
         boolean endChanged = !classItem.getEndDate().equals(request.endDate());
-        if ("COMPLETED".equalsIgnoreCase(classItem.getStatus()) &&
-                (startChanged || endChanged)) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Completed class dates are locked; cannot change start or end date");
-        }
-        if ("RUNNING".equalsIgnoreCase(classItem.getStatus()) && startChanged) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Running class start date is locked; only an end-date adjustment is permitted");
-        }
+        enforceDateEditPolicy(classItem.getStatus(),
+                classItem.getStartDate(), classItem.getEndDate(),
+                request.startDate(), request.endDate());
         validateClassRequest(request, classId);
 
         boolean hasHistory =
@@ -1102,6 +1096,20 @@ public class ClassManagementService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    static void enforceDateEditPolicy(String status, LocalDate originalStart,
+                                      LocalDate originalEnd, LocalDate newStart,
+                                      LocalDate newEnd) {
+        if (Set.of("COMPLETED", "CLOSED").contains(status) &&
+                (!originalStart.equals(newStart) || !originalEnd.equals(newEnd))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Completed or closed class dates are locked");
+        }
+        if ("RUNNING".equals(status) && !originalStart.equals(newStart)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class start date is locked; only an end-date adjustment is permitted");
+        }
     }
 
     private void validateClassRequest(ClassUpsertRequest request, String currentClassId) {
