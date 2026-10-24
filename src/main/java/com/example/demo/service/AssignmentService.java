@@ -118,7 +118,10 @@ public class AssignmentService {
         }
         if (!access.hasApprovedAvailability(data.teacherId(),data.date(),
                 data.startTime(),data.endTime(),data.campus())) {
-            throw new ApiException(HttpStatus.CONFLICT,"No approved availability covering this teaching session");
+            throw new ApiException(HttpStatus.CONFLICT,
+                "No approved availability covering this teaching session: " +
+                access.availabilityMismatchReason(data.teacherId(), data.date(),
+                    data.startTime(), data.endTime(), data.campus()));
         }
         List<Map<String,Object>> personConflicts=db.queryForList(
             "SELECT c.class_code AS \"classCode\", t.start_time AS \"startTime\", " +
