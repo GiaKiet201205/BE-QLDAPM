@@ -102,14 +102,84 @@ public class SchedulingAccess {
 
     public boolean hasApprovedAvailability(String employeeId, LocalDate date,
                                             LocalTime start, LocalTime end, String campus) {
-        // Only an approved slot which fully covers the requested time can be assigned.
+        // RECURRING applies to the same weekday, including past lessons.
+        // WEEKLY is valid only for its exact available_date.
         Integer count = jdbc.queryForObject(
             "SELECT count(*) FROM availabilities WHERE employee_id=? " +
-            "AND upper(status)='APPROVED' AND start_time<=? AND end_time>=? " +
-            "AND (available_date=? OR (available_date IS NULL AND lower(day_of_week)=?)) " +
-            "AND (? IS NULL OR campus IS NULL OR campus='' OR campus=?)",
+            "AND upper(btrim(status))='APPROVED' AND start_time<=? AND end_time>=? " +
+            "AND (available_date=? OR (available_date IS NULL AND lower(btrim(day_of_week))=?)) " +
+            "AND (? IS NULL OR campus IS NULL OR btrim(campus)='' " +
+            "OR lower(btrim(campus))=lower(btrim(?)))",
             Integer.class, employeeId, start, end, date, day(date), campus, campus);
         return count != null && count > 0;
+    }
+
+    /**
+     * Give TC/CM the failed constraint, rather than a misleading generic
+     * "outside availability" message. This is diagnostic only: it never approves
+     * availability or relaxes the weekday, date, time or campus requirements.
+     */
+    public String availabilityMismatchReason(String employeeId, LocalDate date,
+                                             LocalTime start, LocalTime end, String campus) {
+        List<Map<String,Object>> slots = jdbc.queryForList(
+            "SELECT available_date, day_of_week, availability_type, start_time, end_time, " +
+            "status, campus FROM availabilities WHERE employee_id=? " +
+            "ORDER BY CASE WHEN available_date=? OR " +
+            "(available_date IS NULL AND lower(btrim(day_of_week))=?) THEN 0 ELSE 1 END, " +
+            "reviewed_at DESC NULLS LAST LIMIT 50",
+            employeeId, date, day(date));
+        if (slots.isEmpty()) {
+            return "Nhân sự " + employeeId + " chưa có bản ghi lịch rảnh trong database";
+        }
+        List<Map<String,Object>> onDay = slots.stream().filter(slot ->
+            slot.get("available_date") != null
+                ? date.toString().equals(String.valueOf(slot.get("available_date")))
+                : day(date).equalsIgnoreCase(String.valueOf(slot.get("day_of_week")).trim())
+        ).toList();
+        if (onDay.isEmpty()) {
+            String samples = slots.stream().limit(3).map(slot -> {
+                Object specific = slot.get("available_date");
+                return specific == null
+                    ? "định kỳ " + slot.get("day_of_week") + " " +
+                      slot.get("start_time") + "-" + slot.get("end_time")
+                    : "theo ngày " + specific + " " +
+                      slot.get("start_time") + "-" + slot.get("end_time");
+            }).collect(java.util.stream.Collectors.joining(", "));
+            return "Không có lịch rảnh áp dụng ngày " + date + " (thứ " +
+                    day(date) + ") cho nhân sự " + employeeId +
+                    "; lịch tìm thấy: " + samples;
+        }
+        List<Map<String,Object>> approved = onDay.stream().filter(slot ->
+            "APPROVED".equalsIgnoreCase(String.valueOf(slot.get("status")).trim())
+        ).toList();
+        if (approved.isEmpty()) {
+            return "Lịch rảnh ngày " + date + " của " + employeeId +
+                " chưa được duyệt (trạng thái: " + onDay.stream()
+                    .map(slot -> String.valueOf(slot.get("status")))
+                    .distinct().collect(java.util.stream.Collectors.joining(", ")) + ")";
+        }
+        List<Map<String,Object>> covering = approved.stream().filter(slot ->
+            !java.time.LocalTime.parse(String.valueOf(slot.get("start_time"))).isAfter(start)
+            && !java.time.LocalTime.parse(String.valueOf(slot.get("end_time"))).isBefore(end)
+        ).toList();
+        if (covering.isEmpty()) {
+            return "Ngày " + date + " giáo viên đã có lịch rảnh APPROVED, nhưng không bao phủ " +
+                start + "-" + end + "; các giờ được duyệt: " +
+                approved.stream().map(slot -> slot.get("start_time") + "-" + slot.get("end_time"))
+                    .distinct().collect(java.util.stream.Collectors.joining(", "));
+        }
+        String normalizedCampus = campus == null ? "" : campus.trim();
+        String availableCampuses = covering.stream()
+            .map(slot -> slot.get("campus") == null ? "" : String.valueOf(slot.get("campus")).trim())
+            .distinct().collect(java.util.stream.Collectors.joining(", "));
+        if (!normalizedCampus.isEmpty() && covering.stream().noneMatch(slot ->
+            slot.get("campus") == null || String.valueOf(slot.get("campus")).isBlank() ||
+            normalizedCampus.equalsIgnoreCase(String.valueOf(slot.get("campus")).trim())
+        )) {
+            return "Giáo viên đã rảnh đúng ngày/giờ nhưng khác cơ sở: đang chọn '" +
+                campus + "', lịch rảnh tại '" + availableCampuses + "'";
+        }
+        return "Có lịch rảnh phù hợp nhưng truy vấn xác thực không nhận diện được; hãy kiểm tra dữ liệu availabilities của " + employeeId;
     }
 
     public String campusForWorkplace(String workplaceId) {
