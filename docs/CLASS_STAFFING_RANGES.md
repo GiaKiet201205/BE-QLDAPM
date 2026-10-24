@@ -93,7 +93,7 @@ The CS Class Management list intentionally includes classes a CS **created**, cl
 The class list and detail payloads expose `csAccessLevel` for the authenticated CS:
 
 - `CREATOR`: CS created the class and retains an active `CREATED_BY_CS` scope. Can edit class information, student roster and timetable while DRAFT/READY, but not when RUNNING. **Does not automatically earn teacher attendance rights.**
-- `MANAGER`: CM explicitly assigned the CS to the entire course and all planned lessons are covered. This grants class-level management rights via `class_access_scopes.source='CM_ASSIGNED_COURSE'`. A replacement for one lesson does not automatically replace the course manager.
+- `MANAGER`: CM explicitly assigned the CS to the entire course and all planned lessons are covered. This grants class-level management rights via `class_access_scopes.source='CM_ASSIGNED_COURSE'`. A replacement for one lesson does not automatically replace the course manager. Legacy explicit manager scopes with source `ASSIGNED_SCOPE` or `AUTO_ASSIGNED` remain supported; a single dated `CLASS_SUPPORT` shift alone does not grant management rights.
 - `SUPPORT`: CS has at least one active `staff_schedules` CLASS_SUPPORT entry. Can view the class and sessions, but **cannot** edit class metadata, roster, status or full timetable.
 - No scope and no active support assignment: not listed to that CS.
 
@@ -101,7 +101,7 @@ CM assigns `scope:'COURSE'` through the range API to establish a course manager.
 
 **Attendance is always narrower than class visibility:** an authenticated CS must have an active CLASS_SUPPORT assignment with matching `classId/date/startTime/endTime` to record PRESENT/ABSENT/LATE for that lesson, including past lessons. This is enforced server-side; a CREATOR or MANAGER title alone does not permit marks on uncovered lessons.
 
-**Revocation:** CM replaces a whole-course manager by performing another validated COURSE assignment. On course replacement the previous CM-assigned scope is disabled. If a CM cancels the final class-support shift held by a CM-assigned manager, their course-manager scope is also deactivated. A one-off substitute does not inherit class-level permissions.
+**Revocation:** CM replaces a whole-course manager by performing another validated COURSE assignment. On course replacement the previous CM-assigned scope is disabled. If a CM cancels the final class-support shift held by a CM-assigned manager, their course-manager scope is also deactivated. A one-off substitute does not inherit class-level permissions. When the outgoing manager was also the original class creator, their active scope reverts to `CREATED_BY_CS` rather than disappearing. The same preservation applies when cancelling their final support shift.
 
 ### Key regression scenarios
 
