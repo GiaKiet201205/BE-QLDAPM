@@ -230,6 +230,26 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Running class timetable is locked; reassign the teacher without changing the slot");
         }
+        boolean changingAssignedLesson =
+            !old.get("teacherId").equals(data.teacherId()) ||
+            !old.get("classId").equals(data.classId()) ||
+            !old.get("date").toString().equals(data.date().toString()) ||
+            !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+            !old.get("endTime").toString().startsWith(data.endTime().toString());
+        if (changingAssignedLesson) {
+            // Lock the source assignment so a CS attendance save cannot race
+            // a teacher replacement and accidentally attach presence to a new teacher.
+            db.queryForObject(
+                "SELECT teaching_schedule_id FROM teaching_schedules WHERE teaching_schedule_id=? FOR UPDATE",
+                String.class, id);
+            Integer recorded = db.queryForObject(
+                "SELECT count(*) FROM teacher_session_attendance WHERE teaching_schedule_id=?",
+                Integer.class, id);
+            if (recorded != null && recorded > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "Attendance is already recorded for this teacher assignment; it cannot be reassigned or moved");
+            }
+        }
         validateTeacher(data,id);
         db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=? " +
             "WHERE teaching_schedule_id=?",data.teacherId(),data.classId(),data.date(),
