@@ -69,3 +69,18 @@ For the historical rule, a replacement of a lesson that has already begun is rej
 - `npx prisma migrate deploy` and `npx prisma generate` against the correct BE database.
 - Build and verify FE/BE before merge. The GitHub changes are **not** claimed to have been integration tested locally.
 - Currently, newly added class lessons are **not automatically staffed**. The TC/CM can use FILL_EMPTY to assign the new lessons; this avoids assigning personnel without re-checking their availability.
+
+## Class date changes and lesson history (verified in the same feature PR)
+
+| Class status | Change start date | Change end date | Timetable policy |
+|---|---|---|---|
+| DRAFT | Allowed | Allowed | Edit and save the plan explicitly; never silently rewrite assigned work |
+| READY | Conditionally allowed | Conditionally allowed | Every active lesson and active staff assignment must fit new range |
+| RUNNING | Locked | Conditionally allowed | Append future sessions only, or cancel/move an individual future session via the reschedule API |
+| COMPLETED / CLOSED | Locked | Locked | Historical dates and assignments are immutable |
+
+**Shrinking:** `PUT /api/classes/{id}` rejects dates that exclude planned lessons or active assignments. For READY, TC and CM can soft-cancel assignments for affected future lessons, Admin/CS removes those future slots from the Schedule plan, then the class range can be shortened. For RUNNING, use the existing future lesson cancel/reschedule workflow first; class start date is locked. Past lessons must not be deleted.
+
+**Extending:** change the permitted class end date first, then add future planned lessons (the class timetable editor supports append-only on RUNNING). TC/CM explicitly staff the new lessons after availability and conflict checks. Previously assigned sessions stay attached to their original dates. The frontend reloads timetable data when either class date changes.
+
+**Regression checks:** reject RUNNING start-date edits; reject COMPLETED/CLOSED date edits; reject shortening across planned or assigned sessions; append new future lessons on RUNNING; reject deletion/edit of existing RUNNING lessons or past READY lessons; verify extending refreshes Schedule without moving pre-existing assignments.
