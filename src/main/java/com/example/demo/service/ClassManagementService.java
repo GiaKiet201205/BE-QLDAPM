@@ -102,7 +102,8 @@ public class ClassManagementService {
                     item.getCreatedByUsername(),
                     item.getCreatedAt(),
                     classStudentRepository.countByClassIdAndStatusIgnoreCase(item.getClassId(), "ACTIVE"),
-                    teacherNames
+                    teacherNames,
+                    csAccessLevel(actor, item.getClassId())
             );
         }).toList();
     }
@@ -217,7 +218,8 @@ public class ClassManagementService {
                         .map(item -> new AuditLogResponse(
                                 item.getAuditLogId(), item.getUsername(), item.getAction(),
                                 item.getDescription(), item.getCreatedAt()))
-                        .toList()
+                        .toList(),
+                csAccessLevel(actor(authentication), classId)
         );
     }
 
@@ -1344,9 +1346,34 @@ public class ClassManagementService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only Admin or assigned CS can manage a class");
         }
         Employee employee = requireEmployee(actor.username());
-        if (!hasCsClassAccess(employee.getEmployeeId(), classItem.getClassId())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "You do not manage this class");
+        String level = csAccessLevel(employee.getEmployeeId(), classItem.getClassId());
+        if (!canCsManage(level, classItem.getStatus())) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Only the class creator (before Running) or the CM-assigned course CS can manage this class");
         }
+    }
+
+    static boolean canCsManage(String accessLevel, String classStatus) {
+        return "MANAGER".equals(accessLevel) ||
+                ("CREATOR".equals(accessLevel) && Set.of("DRAFT", "READY").contains(classStatus));
+    }
+
+    private String csAccessLevel(Actor actor, String classId) {
+        if (!"CS".equals(actor.role())) return null;
+        return csAccessLevel(requireEmployee(actor.username()).getEmployeeId(), classId);
+    }
+
+    private String csAccessLevel(String employeeId, String classId) {
+        List<String> scopeSources = jdbc.query(
+                "SELECT source FROM class_access_scopes WHERE employee_id=? AND class_id=? AND status='ACTIVE'",
+                (rs, index) -> rs.getString(1), employeeId, classId);
+        if (scopeSources.contains("CM_ASSIGNED_COURSE")) return "MANAGER";
+        if (scopeSources.contains("CREATED_BY_CS")) return "CREATOR";
+        Integer support = jdbc.queryForObject(
+                "SELECT count(*) FROM staff_schedules WHERE employee_id=? AND class_id=? " +
+                "AND work_type='CLASS_SUPPORT' AND status='ASSIGNED'",
+                Integer.class, employeeId, classId);
+        return support != null && support > 0 ? "SUPPORT" : null;
     }
 
     private boolean hasCsClassAccess(String employeeId, String classId) {
