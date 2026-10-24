@@ -281,6 +281,17 @@ public class ClassManagementService {
         if ("CLOSED".equalsIgnoreCase(classItem.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Closed classes are read-only");
         }
+        boolean startChanged = !classItem.getStartDate().equals(request.startDate());
+        boolean endChanged = !classItem.getEndDate().equals(request.endDate());
+        if ("COMPLETED".equalsIgnoreCase(classItem.getStatus()) &&
+                (startChanged || endChanged)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Completed class dates are locked; cannot change start or end date");
+        }
+        if ("RUNNING".equalsIgnoreCase(classItem.getStatus()) && startChanged) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Running class start date is locked; only an end-date adjustment is permitted");
+        }
         validateClassRequest(request, classId);
 
         boolean hasHistory =
@@ -296,15 +307,15 @@ public class ClassManagementService {
                     "Course cannot be changed after the class has history");
         }
 
-        if (!classItem.getStartDate().equals(request.startDate())
-                || !classItem.getEndDate().equals(request.endDate())) {
+        if (startChanged || endChanged) {
             Integer outsidePlan = jdbc.queryForObject(
                     "SELECT count(*) FROM class_sessions WHERE class_id=? " +
                     "AND (date < ? OR date > ?) AND status='PLANNED'",
                     Integer.class, classId, request.startDate(), request.endDate());
             if (outsidePlan != null && outsidePlan > 0) {
                 throw new ApiException(HttpStatus.CONFLICT,
-                        "Class date range cannot exclude planned lessons; adjust the timetable first");
+                        "Class date change affects " + outsidePlan + " planned lesson(s) outside the new range. " +
+                        "Edit and save the timetable in the Schedule tab first; assigned lessons must be handled by TC/CM.");
             }
             ensureClassHistoryInsideDateRange(
                     classId,
@@ -341,7 +352,10 @@ public class ClassManagementService {
         classRepository.save(classItem);
 
         audit(actor.username(), "UPDATE_CLASS", classId,
-                "Updated class " + classItem.getClassCode());
+                "Updated class " + classItem.getClassCode() +
+                (startChanged || endChanged
+                        ? "; date range: " + request.startDate() + " to " + request.endDate()
+                        : ""));
         return getClassDetail(classId, authentication);
     }
 
