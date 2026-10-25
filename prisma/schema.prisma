@@ -89,6 +89,7 @@ model Employee {
   reviewedAvailabilities   Availability[]     @relation("AvailabilityReviewer")
   teachingSchedules        TeachingSchedule[] @relation("TeachingTeacher")
   assignedTeachingSchedules TeachingSchedule[] @relation("TeachingAssigner")
+  recordedTeacherAttendances TeacherSessionAttendance[] @relation("TeacherAttendanceRecorder")
   staffSchedules           StaffSchedule[]    @relation("StaffEmployee")
   assignedStaffSchedules   StaffSchedule[]    @relation("StaffAssigner")
   classAccessScopes        ClassAccessScope[]
@@ -152,6 +153,7 @@ model Class {
   course             Course                   @relation(fields: [courseId], references: [courseId], onDelete: Restrict)
   createdBy          User?                    @relation("ClassCreatedBy", fields: [createdByUsername], references: [username], onDelete: SetNull)
   lessons            Lesson[]
+  plannedSessions    ClassSession[]
   teachingSchedules  TeachingSchedule[]
   staffSchedules     StaffSchedule[]
   classStudents      ClassStudent[]
@@ -224,6 +226,7 @@ model TeachingSchedule {
   teacher    Employee  @relation("TeachingTeacher", fields: [teacherId], references: [employeeId], onDelete: Restrict)
   class      Class     @relation(fields: [classId], references: [classId], onDelete: Restrict)
   assignedBy Employee? @relation("TeachingAssigner", fields: [assignedById], references: [employeeId], onDelete: SetNull)
+  attendance TeacherSessionAttendance?
 
   @@index([teacherId, date])
   @@index([classId, date])
@@ -459,4 +462,36 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([username, createdAt])
   @@map("audit_logs")
+}
+
+// Confirmed presence for one teacher assignment in one class lesson.
+model TeacherSessionAttendance {
+  attendanceId String @id @default(cuid()) @map("attendance_id") @db.VarChar(50)
+  teachingScheduleId String @unique @map("teaching_schedule_id") @db.VarChar(50)
+  status String @db.VarChar(20)
+  recordedById String @map("recorded_by") @db.VarChar(50)
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  teachingSchedule TeachingSchedule @relation(fields: [teachingScheduleId], references: [teachingScheduleId], onDelete: Restrict)
+  recordedBy Employee @relation("TeacherAttendanceRecorder", fields: [recordedById], references: [employeeId], onDelete: Restrict)
+
+  @@index([recordedById, recordedAt])
+  @@map("teacher_session_attendance")
+}
+
+// A dated class session exists independently of assigned teachers or CS staff.
+model ClassSession {
+  classSessionId String   @id @default(cuid()) @map("class_session_id") @db.VarChar(50)
+  classId        String   @map("class_id") @db.VarChar(50)
+  date           DateTime @db.Date
+  startTime      DateTime @map("start_time") @db.Time(0)
+  endTime        DateTime @map("end_time") @db.Time(0)
+  status         String   @default("PLANNED") @db.VarChar(20)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  class          Class    @relation(fields: [classId], references: [classId], onDelete: Restrict)
+
+  @@unique([classId, date, startTime, endTime])
+  @@index([classId, date])
+  @@map("class_sessions")
 }

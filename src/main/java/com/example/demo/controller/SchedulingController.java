@@ -68,6 +68,18 @@ public class SchedulingController {
         return assignment.teaching(weekStart);
     }
 
+    @PostMapping("/teaching-schedules/batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<Map<String, Object>> assignTeacherBatch(@Valid @RequestBody TeachingBatchRequest body) {
+        return assignment.assignTeacherBatch(body);
+    }
+
+    @PostMapping("/staff-schedules/batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<Map<String, Object>> assignSupportBatch(@Valid @RequestBody SupportBatchRequest body) {
+        return assignment.assignSupportBatch(body);
+    }
+
     @PostMapping("/teaching-schedules")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> assignTeacher(@Valid @RequestBody TeachingRequest body) {

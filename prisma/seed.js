@@ -182,8 +182,10 @@ async function main() {
     ["st-001-toeic-sw", "student-0001", "course-toeic", "SW_TOTAL", 320],
     ["st-002-toeic-lr", "student-0002", "course-toeic", "LR_TOTAL", 850],
     ["st-002-toeic-sw", "student-0002", "course-toeic", "SW_TOTAL", 300],
+    ["st-002-ielts", "student-0002", "course-ielts", "OVERALL_BAND", 7.5],
     ["st-003-toefl", "student-0003", "course-toefl", "OVERALL_1_6", 4.5],
-    ["st-005-ielts", "student-0005", "course-ielts", "OVERALL_BAND", 7.0],
+    ["st-005-ielts", "student-0005", "course-ielts", "OVERALL_BAND", 7.5],
+    ["st-007-ielts", "student-0007", "course-ielts", "OVERALL_BAND", 8.0],
   ];
 
   for (const [studentTargetId, studentId, courseId, targetType, targetValue] of studentTargetSeeds) {
@@ -343,7 +345,7 @@ async function main() {
         name: `Lớp học mở rộng ${i}`,
         startDate: new Date("2026-10-01"),
         endDate: new Date("2026-12-31"),
-        status: "DRAFT",
+        status: "READY",
       },
     });
 
@@ -383,8 +385,8 @@ async function main() {
         studentTargetId: `auto-st-${i}`,
         studentId: autoStudentId,
         courseId: autoCourseId,
-        targetType: "TARGET_OVERALL",
-        targetValue: 6.5,
+        targetType: "OVERALL_SCORE",
+        targetValue: 7.0,
       },
     });
 
@@ -426,9 +428,9 @@ async function main() {
       create: {
         availabilityId: `auto-avail-${i}`,
         employeeId: autoEmployeeId,
-        availableDate: new Date("2026-10-15"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T12:00:00Z"),
+        availableDate: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
         status: "approved",
       },
     });
@@ -447,20 +449,22 @@ async function main() {
       },
     });
 
-    await prisma.staffSchedule.upsert({
-      where: { staffScheduleId: `auto-ss-${i}` },
+    await prisma.classSession.upsert({
+      where: { classSessionId: `auto-session-${i}` },
       update: {},
       create: {
-        staffScheduleId: `auto-ss-${i}`,
-        employeeId: autoEmployeeId,
+        classSessionId: `auto-session-${i}`,
         classId: autoClassId,
-        date: new Date("2026-10-21"),
-        startTime: new Date("1970-01-01T08:00:00Z"),
-        endTime: new Date("1970-01-01T17:00:00Z"),
-        workType: "FULL_TIME",
-        status: "ASSIGNED",
+        date: new Date("2026-10-20"),
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T15:00:00Z"),
+        status: "PLANNED",
       },
     });
+
+    // Do not seed staff shifts for TEACHER users; these shifts cannot be
+    // created through the role-validated scheduling API.
+
   }
 
   // 9. Assignment, Exam, StudentResult
