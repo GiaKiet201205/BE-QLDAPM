@@ -118,18 +118,34 @@ public class AssignmentService {
         }
         if (!access.hasApprovedAvailability(data.teacherId(),data.date(),
                 data.startTime(),data.endTime(),data.campus())) {
-            throw new ApiException(HttpStatus.CONFLICT,"No approved availability covering this teaching session");
+            throw new ApiException(HttpStatus.CONFLICT,
+                "No approved availability covering this teaching session: " +
+                access.availabilityMismatchReason(data.teacherId(), data.date(),
+                    data.startTime(), data.endTime(), data.campus()));
         }
-        Integer personConflict=db.queryForObject(
-            "SELECT count(*) FROM teaching_schedules WHERE teacher_id=? AND date=? " +
-            "AND status='ASSIGNED' AND teaching_schedule_id<>? AND start_time<? AND end_time>?",
-            Integer.class,data.teacherId(),data.date(),exceptId,data.endTime(),data.startTime());
+        List<Map<String,Object>> personConflicts=db.queryForList(
+            "SELECT c.class_code AS \"classCode\", t.start_time AS \"startTime\", " +
+            "t.end_time AS \"endTime\" FROM teaching_schedules t " +
+            "JOIN classes c ON c.class_id=t.class_id " +
+            "WHERE t.teacher_id=? AND t.date=? AND t.status='ASSIGNED' " +
+            "AND t.teaching_schedule_id<>? AND t.start_time<? AND t.end_time>? " +
+            "ORDER BY t.start_time LIMIT 1",
+            data.teacherId(),data.date(),exceptId,data.endTime(),data.startTime());
+        if (!personConflicts.isEmpty()) {
+            var other=personConflicts.get(0);
+            throw new ApiException(HttpStatus.CONFLICT,
+                "TEACHER_SCHEDULE_CONFLICT: Giáo viên đã được phân công lớp " +
+                other.get("classCode") + " ngày " + data.date() +
+                " từ " + other.get("startTime") + " đến " + other.get("endTime") +
+                ". Hãy chọn giáo viên khác hoặc thay đổi lịch phân công trùng.");
+        }
         Integer classConflict=db.queryForObject(
             "SELECT count(*) FROM teaching_schedules WHERE class_id=? AND date=? " +
             "AND status='ASSIGNED' AND teaching_schedule_id<>? AND start_time<? AND end_time>?",
             Integer.class,data.classId(),data.date(),exceptId,data.endTime(),data.startTime());
-        if (personConflict!=null&&personConflict>0) throw new ApiException(HttpStatus.CONFLICT,"TEACHER_SCHEDULE_CONFLICT");
-        if (classConflict!=null&&classConflict>0) throw new ApiException(HttpStatus.CONFLICT,"CLASS_SCHEDULE_CONFLICT");
+        if (classConflict!=null&&classConflict>0)
+            throw new ApiException(HttpStatus.CONFLICT,
+                "CLASS_SCHEDULE_CONFLICT: Lớp đã có giáo viên khác được phân công trùng buổi.");
     }
 
     private void lockClass(String id) {
@@ -210,6 +226,10 @@ public class AssignmentService {
         var actor=access.requireRole("TC");
         Map<String,Object> old=teacherSlot(id);
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
+        if (!old.get("teacherId").equals(data.teacherId())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Use class-planning staffing replacement to change a teacher and retain attendance history");
+        }
         // Lock both people deterministically to avoid races during reassignment.
         List<String> ids=java.util.stream.Stream.of((String)old.get("teacherId"),data.teacherId())
             .distinct().sorted().toList();
@@ -229,6 +249,26 @@ public class AssignmentService {
              !old.get("endTime").toString().startsWith(data.endTime().toString()))) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Running class timetable is locked; reassign the teacher without changing the slot");
+        }
+        boolean changingAssignedLesson =
+            !old.get("teacherId").equals(data.teacherId()) ||
+            !old.get("classId").equals(data.classId()) ||
+            !old.get("date").toString().equals(data.date().toString()) ||
+            !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+            !old.get("endTime").toString().startsWith(data.endTime().toString());
+        if (changingAssignedLesson) {
+            // Lock the source assignment so a CS attendance save cannot race
+            // a teacher replacement and accidentally attach presence to a new teacher.
+            db.queryForObject(
+                "SELECT teaching_schedule_id FROM teaching_schedules WHERE teaching_schedule_id=? FOR UPDATE",
+                String.class, id);
+            Integer recorded = db.queryForObject(
+                "SELECT count(*) FROM teacher_session_attendance WHERE teaching_schedule_id=?",
+                Integer.class, id);
+            if (recorded != null && recorded > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "Attendance is already recorded for this teacher assignment; it cannot be reassigned or moved");
+            }
         }
         validateTeacher(data,id);
         db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=? " +
@@ -323,6 +363,16 @@ public class AssignmentService {
         var actor=access.requireRole("CM");
         Map<String,Object> old=staffSlot(id);
         if (!"ASSIGNED".equals(old.get("status"))) throw new ApiException(HttpStatus.CONFLICT,"Schedule is cancelled");
+        if ("CLASS_SUPPORT".equals(old.get("workType")) &&
+            (!old.get("workType").equals(data.workType()) ||
+             !old.get("employeeId").equals(data.employeeId()) ||
+             !java.util.Objects.equals(old.get("classId"), data.classId()) ||
+             !old.get("date").toString().equals(data.date().toString()) ||
+             !old.get("startTime").toString().startsWith(data.startTime().toString()) ||
+             !old.get("endTime").toString().startsWith(data.endTime().toString()))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Use class-planning staffing replacement to change a CS support lesson");
+        }
         java.util.stream.Stream.of((String)old.get("employeeId"),data.employeeId())
             .distinct().sorted().forEach(access::lockEmployee);
         java.util.stream.Stream.of((String)old.get("classId"),data.classId())
@@ -343,6 +393,24 @@ public class AssignmentService {
         Map<String,Object> old=staffSlot(id);
         access.lockEmployee((String)old.get("employeeId"));
         db.update("UPDATE staff_schedules SET status='CANCELLED' WHERE staff_schedule_id=?",id);
+        if ("CLASS_SUPPORT".equals(old.get("workType")) && old.get("classId") != null) {
+            // A CM-assigned course manager who no longer supports any lesson
+            // must not retain class-wide edit rights indefinitely.
+            db.update(
+                "UPDATE class_access_scopes scope SET " +
+                "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+                "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
+                "ELSE 'CM_ASSIGNED_COURSE' END " +
+                "FROM classes c, employees e " +
+                "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
+                "AND scope.class_id=? AND scope.employee_id=? AND scope.source IN " +
+                "('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
+                "AND scope.status='ACTIVE' AND NOT EXISTS (" +
+                "SELECT 1 FROM staff_schedules s WHERE s.class_id=scope.class_id " +
+                "AND s.employee_id=scope.employee_id AND s.work_type='CLASS_SUPPORT' " +
+                "AND s.status='ASSIGNED')",
+                old.get("classId"), old.get("employeeId"));
+        }
         access.audit(actor,"CANCEL_STAFF_SHIFT","STAFF_SCHEDULE",id);
     }
 }

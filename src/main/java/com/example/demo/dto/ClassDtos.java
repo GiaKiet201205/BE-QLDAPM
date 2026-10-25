@@ -162,7 +162,8 @@ public final class ClassDtos {
             String createdBy,
             Instant createdAt,
             long studentCount,
-            List<String> teacherNames
+            List<String> teacherNames,
+            String csAccessLevel
     ) {}
 
     public record ClassDetailResponse(
@@ -182,7 +183,8 @@ public final class ClassDtos {
             List<AssignmentResponse> assignments,
             List<ExamResponse> exams,
             List<StudentResultResponse> results,
-            List<AuditLogResponse> auditLogs
+            List<AuditLogResponse> auditLogs,
+            String csAccessLevel
     ) {}
 
     public record RosterChangeResponse(
