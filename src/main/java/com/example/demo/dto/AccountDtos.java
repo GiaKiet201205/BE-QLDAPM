@@ -23,6 +23,6 @@ public class AccountDtos {
 
     public record AccountResponse(
             String username, String email, String fullName, String employeeId,
-            String employeeCode, String phone, String role, String status, Instant createdAt
+            String employeeCode, String phone, String role, String status, Instant createdAt, String specialization
     ) {}
 }

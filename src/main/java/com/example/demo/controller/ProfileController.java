@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -23,6 +25,16 @@ public class ProfileController {
     @PatchMapping
     public AccountResponse update(@Valid @RequestBody UpdateProfileRequest request, Authentication actor) {
         return accounts.updateProfile(request, actor);
+    }
+
+    @GetMapping("/salary")
+    public CurrentSalaryResponse salary(Authentication actor) {
+        return accounts.profileSalary(actor);
+    }
+
+    @GetMapping("/certificates")
+    public List<Map<String, Object>> certificates(Authentication actor) {
+        return accounts.profileCertificates(actor);
     }
 
     @PostMapping("/password")

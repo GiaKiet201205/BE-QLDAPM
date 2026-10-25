@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -123,6 +124,36 @@ public class AccountManagementService {
         return response(user, employees.findByUsername(user.getUsername()).orElse(null));
     }
 
+    @Transactional(readOnly = true)
+    public CurrentSalaryResponse profileSalary(Authentication actor) {
+        User user = requireCurrentUser(actor, false);
+        // Resolve identity from authentication only; never accept a target username.
+        List<CurrentSalaryResponse> rows = jdbc.query("""
+                SELECT r.salary_rank_id, r.rank, r.amount,
+                       to_char(e.reviewed_date AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS reviewed_date
+                FROM employees e LEFT JOIN salary_ranks r ON r.salary_rank_id=e.salary_rank_id
+                WHERE e.username=?
+                """, (rs, index) -> {
+            String reviewedDate = rs.getString("reviewed_date");
+            return new CurrentSalaryResponse(rs.getString("salary_rank_id"), rs.getString("rank"),
+                    rs.getBigDecimal("amount"), reviewedDate == null ? null : LocalDate.parse(reviewedDate));
+        }, user.getUsername());
+        return rows.isEmpty() ? new CurrentSalaryResponse(null, null, null, null) : rows.get(0);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> profileCertificates(Authentication actor) {
+        User user = requireCurrentUser(actor, false);
+        return jdbc.queryForList("""
+                SELECT c.certificate_id AS "certificateId", c.certificate_type AS "certificateType",
+                       c.score, c.score_sw AS "scoreSW", to_char(c.issue_date, 'YYYY-MM-DD') AS "issueDate",
+                       to_char(c.expiry_date, 'YYYY-MM-DD') AS "expiryDate", c.issuer,
+                       c.certificate_url AS "certificateUrl", c.status
+                FROM certificates c JOIN employees e ON e.employee_id=c.employee_id
+                WHERE e.username=? ORDER BY c.created_at DESC, c.certificate_id
+                """, user.getUsername());
+    }
+
     public AccountResponse updateProfile(UpdateProfileRequest request, Authentication actor) {
         lockAccountWrites();
         User user = requireCurrentUser(actor, true);
@@ -133,6 +164,8 @@ public class AccountManagementService {
         }
         String fullName = request.fullName().trim().replaceAll("\\s+", " ");
         String phone = request.phone() == null || request.phone().isBlank() ? null : request.phone().trim();
+        String specialization = request.specialization() == null || request.specialization().isBlank()
+                ? null : request.specialization().trim();
         user.setEmail(email);
         users.saveAndFlush(user);
 
@@ -143,7 +176,7 @@ public class AccountManagementService {
             String employeeId = nextEmployeeId();
             String code = nextEmployeeCode(user.getRoleId());
             employee = Employee.builder().employeeId(employeeId).username(user.getUsername())
-                    .employeeCode(code).fullName(fullName).phone(phone).status("ACTIVE").build();
+                    .employeeCode(code).fullName(fullName).phone(phone).specialization(specialization).status("ACTIVE").build();
             employee = employees.saveAndFlush(employee);
             audit(actor, "RESERVE_ACCOUNT_IDENTIFIER", "EMPLOYEE_ID", employeeId,
                     "Reserved employee ID for " + user.getUsername());
@@ -152,6 +185,7 @@ public class AccountManagementService {
         } else {
             employee.setFullName(fullName);
             employee.setPhone(phone);
+            employee.setSpecialization(specialization);
             employees.saveAndFlush(employee);
         }
         audit(actor, "UPDATE_PROFILE", "ACCOUNT", user.getUsername(), "Updated own profile");
@@ -251,7 +285,8 @@ public class AccountManagementService {
                 employee == null ? user.getUsername() : employee.getFullName(),
                 employee == null ? null : employee.getEmployeeId(),
                 employee == null ? null : employee.getEmployeeCode(),
-                employee == null ? null : employee.getPhone(), user.getRoleId(), user.getStatus(), user.getCreatedAt());
+                employee == null ? null : employee.getPhone(), user.getRoleId(), user.getStatus(), user.getCreatedAt(),
+                employee == null ? null : employee.getSpecialization());
     }
 
     private void audit(Authentication actor, String action, String entityType, String entityId, String description) {

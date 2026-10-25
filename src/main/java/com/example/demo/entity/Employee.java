@@ -27,6 +27,9 @@ public class Employee {
     @Column(name = "phone", length = 15)
     private String phone;
 
+    @Column(name = "specialization", length = 100)
+    private String specialization;
+
     @Column(name = "status", length = 20, nullable = false)
     private String status;
 }
