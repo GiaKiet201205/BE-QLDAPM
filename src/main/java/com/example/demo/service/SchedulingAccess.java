@@ -214,6 +214,18 @@ public class SchedulingAccess {
         return "Có lịch rảnh phù hợp nhưng truy vấn xác thực không nhận diện được; hãy kiểm tra dữ liệu availabilities của " + employeeId;
     }
 
+    // Never treat an unspecified work location as approval for every campus.
+    public String requiredCampus(String input) {
+        if (input == null || input.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Campus is required for teaching assignments");
+        }
+        String value = input.trim();
+        for (String campus : List.of("Cơ sở chính", "Cơ sở Quận 1", "Cơ sở Quận 3")) {
+            if (campus.equalsIgnoreCase(value)) return campus;
+        }
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Unknown campus");
+    }
+
     public String campusForWorkplace(String workplaceId) {
         if (workplaceId == null) return null;
         return switch (workplaceId) {

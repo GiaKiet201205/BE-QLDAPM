@@ -27,7 +27,7 @@ public class AssignmentService {
         "SELECT t.teaching_schedule_id AS id,t.teacher_id AS \"teacherId\", " +
         "e.full_name AS \"teacherName\",t.class_id AS \"classId\",c.class_code AS \"classCode\", " +
         "c.name AS \"className\",t.date,t.start_time AS \"startTime\",t.end_time AS \"endTime\", " +
-        "t.status,t.assigned_by AS \"assignedBy\" FROM teaching_schedules t " +
+        "t.status,t.campus,t.assigned_by AS \"assignedBy\" FROM teaching_schedules t " +
         "JOIN employees e ON t.teacher_id=e.employee_id JOIN classes c ON c.class_id=t.class_id ";
     private static final String STAFF =
         "SELECT s.staff_schedule_id AS id,s.employee_id AS \"userId\",s.employee_id AS \"employeeId\", " +
@@ -96,6 +96,7 @@ public class AssignmentService {
 
     private void validateTeacher(TeachingRequest data,String exceptId) {
         access.validTimes(data.startTime(),data.endTime());
+        String campus = access.requiredCampus(data.campus());
         access.requireEmployeeRole(data.teacherId(),"TEACHER");
         Map<String,Object> cls=db.queryForList("SELECT status,start_date,end_date FROM classes WHERE class_id=?",
             data.classId()).stream().findFirst().orElseThrow(
@@ -117,11 +118,11 @@ public class AssignmentService {
                 "TC must assign a teacher to an existing planned class session, without changing its time");
         }
         if (!access.hasApprovedAvailability(data.teacherId(),data.date(),
-                data.startTime(),data.endTime(),data.campus())) {
+                data.startTime(),data.endTime(),campus)) {
             throw new ApiException(HttpStatus.CONFLICT,
                 "No approved availability covering this teaching session: " +
                 access.availabilityMismatchReason(data.teacherId(), data.date(),
-                    data.startTime(), data.endTime(), data.campus()));
+                    data.startTime(), data.endTime(), campus));
         }
         List<Map<String,Object>> personConflicts=db.queryForList(
             "SELECT c.class_code AS \"classCode\", t.start_time AS \"startTime\", " +
@@ -214,9 +215,9 @@ public class AssignmentService {
         validateTeacher(data,"");
         String id=UUID.randomUUID().toString();
         db.update("INSERT INTO teaching_schedules " +
-            "(teaching_schedule_id,teacher_id,class_id,date,start_time,end_time,status,assigned_by) " +
-            "VALUES (?,?,?,?,?,?,'ASSIGNED',?)",id,data.teacherId(),data.classId(),
-            data.date(),data.startTime(),data.endTime(),actor.id());
+            "(teaching_schedule_id,teacher_id,class_id,date,start_time,end_time,campus,status,assigned_by) " +
+            "VALUES (?,?,?,?,?,?,?,'ASSIGNED',?)",id,data.teacherId(),data.classId(),
+            data.date(),data.startTime(),data.endTime(),access.requiredCampus(data.campus()),actor.id());
         access.audit(actor,"ASSIGN_TEACHER","TEACHING_SCHEDULE",id);
         return teacherSlot(id);
     }
@@ -271,9 +272,9 @@ public class AssignmentService {
             }
         }
         validateTeacher(data,id);
-        db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=? " +
+        db.update("UPDATE teaching_schedules SET teacher_id=?,class_id=?,date=?,start_time=?,end_time=?,campus=? " +
             "WHERE teaching_schedule_id=?",data.teacherId(),data.classId(),data.date(),
-            data.startTime(),data.endTime(),id);
+            data.startTime(),data.endTime(),access.requiredCampus(data.campus()),id);
         access.audit(actor,"UPDATE_TEACHING_SCHEDULE","TEACHING_SCHEDULE",id);
         return teacherSlot(id);
     }
@@ -283,6 +284,16 @@ public class AssignmentService {
         var actor=access.requireRole("TC");
         Map<String,Object> old=teacherSlot(id);
         access.lockEmployee((String)old.get("teacherId"));
+        if ("ASSIGNED".equals(old.get("status"))) {
+            requireFutureShift(old, "Teaching assignment");
+            Integer attended = db.queryForObject(
+                "SELECT count(*) FROM teacher_session_attendance WHERE teaching_schedule_id=?",
+                Integer.class, id);
+            if (attended != null && attended > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                    "Teacher attendance already exists; preserve history and use the substitution workflow");
+            }
+        }
         // Do not leave an active class without a teacher for one of its planned lessons.
         Integer running=db.queryForObject(
             "SELECT count(*) FROM classes WHERE class_id=? AND status='RUNNING'",
@@ -301,6 +312,16 @@ public class AssignmentService {
         access.audit(actor,"CANCEL_TEACHING_SCHEDULE","TEACHING_SCHEDULE",id);
     }
 
+    private void requireFutureShift(Map<String,Object> row, String label) {
+        java.time.LocalDate date = java.time.LocalDate.parse(row.get("date").toString().substring(0,10));
+        java.time.LocalTime start = java.time.LocalTime.parse(row.get("startTime").toString().substring(0,5));
+        if (!java.time.LocalDateTime.of(date,start)
+                .isAfter(java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                label + " has already started; historical assignments cannot be changed");
+        }
+    }
+
     private void validateStaff(StaffRequest data,String exceptId) {
         access.validTimes(data.startTime(),data.endTime());
         String role=data.staffRole().toUpperCase(Locale.ROOT);
@@ -310,6 +331,9 @@ public class AssignmentService {
             ?List.of("CLASS_SUPPORT","OPERATIONS_SUPPORT","FRONT_DESK")
             :List.of("SALES_SHIFT","LEAD_FOLLOWUP","CONSULTATION");
         if (!validWork.contains(data.workType())) throw new ApiException(HttpStatus.BAD_REQUEST,"Invalid workType for role");
+        if (data.workplaceId() == null || data.workplaceId().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "workplaceId is required");
+        }
         String campus=access.campusForWorkplace(data.workplaceId());
         if (!access.hasApprovedAvailability(data.employeeId(),data.date(),
                 data.startTime(),data.endTime(),campus)) {
@@ -373,11 +397,20 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.CONFLICT,
                 "Use class-planning staffing replacement to change a CS support lesson");
         }
+        requireFutureShift(old, "Staff shift");
         java.util.stream.Stream.of((String)old.get("employeeId"),data.employeeId())
             .distinct().sorted().forEach(access::lockEmployee);
         java.util.stream.Stream.of((String)old.get("classId"),data.classId())
             .filter(java.util.Objects::nonNull).distinct().sorted().forEach(this::lockClass);
         validateStaff(data,id);
+        if (!old.get("employeeId").equals(data.employeeId())) {
+            // Changing staff must not rewrite historical ownership of an existing shift.
+            // The cancellation and new assignment are committed atomically.
+            db.update("UPDATE staff_schedules SET status='CANCELLED' " +
+                      "WHERE staff_schedule_id=? AND status='ASSIGNED'", id);
+            access.audit(actor,"REPLACE_STAFF_SHIFT","STAFF_SCHEDULE",id);
+            return assignStaff(data);
+        }
         String classId="CS".equalsIgnoreCase(data.staffRole())&&"CLASS_SUPPORT".equals(data.workType())
             ?data.classId():null;
         db.update("UPDATE staff_schedules SET employee_id=?,class_id=?,workplace_id=?,date=?,start_time=?," +
@@ -392,6 +425,9 @@ public class AssignmentService {
         var actor=access.requireRole("CM");
         Map<String,Object> old=staffSlot(id);
         access.lockEmployee((String)old.get("employeeId"));
+        if ("ASSIGNED".equals(old.get("status"))) {
+            requireFutureShift(old, "Staff shift");
+        }
         if ("CLASS_SUPPORT".equals(old.get("workType")) && old.get("classId") != null
                 && "ASSIGNED".equals(old.get("status"))) {
             // Serialize with range staffing and class lifecycle updates.

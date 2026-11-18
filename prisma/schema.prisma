@@ -219,6 +219,7 @@ model TeachingSchedule {
   date               DateTime @db.Date
   startTime          DateTime @map("start_time") @db.Time(0)
   endTime            DateTime @map("end_time") @db.Time(0)
+  campus             String?  @db.VarChar(100)
   status             String   @default("ASSIGNED") @db.VarChar(20)
   assignedById       String?  @map("assigned_by") @db.VarChar(50)
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -391,6 +392,8 @@ model StudentResult {
   exam        Exam?       @relation(fields: [examId], references: [examId], onDelete: Restrict)
   evaluatedBy Employee    @relation("ResultEvaluator", fields: [evaluatedById], references: [employeeId], onDelete: Restrict)
 
+  @@unique([studentId, classId, assignmentId], map: "student_result_unique_assignment")
+  @@unique([studentId, classId, examId], map: "student_result_unique_exam")
   @@index([studentId, classId])
   @@index([assignmentId])
   @@index([examId])
