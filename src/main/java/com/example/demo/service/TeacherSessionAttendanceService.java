@@ -95,8 +95,9 @@ public class TeacherSessionAttendanceService {
         String status = checkedStatus(request == null ? null : request.status());
 
         List<Map<String,Object>> matches = db.queryForList(
-            "SELECT t.date, t.start_time, t.end_time, t.status, a.status AS attendance_status " +
-            "FROM teaching_schedules t " +
+            "SELECT t.date, t.start_time, t.end_time, t.status, t.teacher_id, " +
+            "c.status AS class_status, a.status AS attendance_status " +
+            "FROM teaching_schedules t JOIN classes c ON c.class_id=t.class_id " +
             "JOIN class_sessions lesson ON lesson.class_id=t.class_id " +
             "AND lesson.date=t.date AND lesson.start_time=t.start_time " +
             "AND lesson.end_time=t.end_time AND lesson.status='PLANNED' " +
@@ -121,11 +122,24 @@ public class TeacherSessionAttendanceService {
         }
 
         Map<String,Object> lesson = matches.get(0);
+        if (!List.of("READY","RUNNING").contains(String.valueOf(lesson.get("class_status")))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Attendance is locked after class completion");
+        }
         LocalDate date = ((Date)lesson.get("date")).toLocalDate();
         LocalTime start = LocalTime.parse(String.valueOf(lesson.get("start_time")));
         if (!lessonHasStarted(date, start, LocalDateTime.now(BUSINESS_ZONE))) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Attendance can only be recorded once the lesson has started");
+        }
+
+        Integer payrollLocked = db.queryForObject(
+            "SELECT count(*) FROM employee_salaries WHERE employee_id=? AND period=? " +
+            "AND status IN ('CALCULATED','APPROVED','FINALIZED','PAID')",
+            Integer.class, lesson.get("teacher_id"), date.toString().substring(0,7));
+        if (payrollLocked != null && payrollLocked > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                "Attendance is locked because this payroll period was calculated");
         }
 
         if (!status.equals(lesson.get("attendance_status"))) {
