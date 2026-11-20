@@ -1,5 +1,11 @@
 # Backend IIG — Spring Boot + PostgreSQL + JWT
 
+## Trợ lý công việc
+
+Chatbox hướng dẫn theo role đã tích hợp qua `/api/chat/status` và
+`/api/chat/messages`. Chạy được bằng hướng dẫn có sẵn, có thể bật AI bằng cấu hình
+backend. Xem [cách cấu hình và kiểm tra](docs/CHAT_ASSISTANT.md).
+
 ## Chạy toàn bộ BE bằng Docker (khuyến nghị)
 
 Máy mới chỉ cần **Git và Docker Desktop (Docker Compose v2)**. Không cần cài PostgreSQL, Node.js, Prisma, Java hoặc Maven ở máy host.

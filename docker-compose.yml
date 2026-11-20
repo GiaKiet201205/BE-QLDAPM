@@ -41,6 +41,11 @@ services:
       DB_PASSWORD: postgres
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-key-at-least-256-bits-please}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      CHAT_AI_ENABLED: ${CHAT_AI_ENABLED:-false}
+      CHAT_AI_PROVIDER: ${CHAT_AI_PROVIDER:-openai}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CHAT_AI_MODEL: ${CHAT_AI_MODEL:-}
     ports:
       - "8080:8080"
     depends_on:

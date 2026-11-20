@@ -33,3 +33,10 @@ jwt:
 logging:
   level:
     org.springframework.security: INFO
+
+chat:
+  ai-enabled: ${CHAT_AI_ENABLED:false}
+  provider: ${CHAT_AI_PROVIDER:openai}
+  api-key: ${OPENAI_API_KEY:}
+  gemini-api-key: ${GEMINI_API_KEY:}
+  model: ${CHAT_AI_MODEL:}
