@@ -118,9 +118,15 @@ public class ClassSessionService {
 
     private List<Map<String,Object>> readSessions(String classId) {
         return db.queryForList(
-            "SELECT class_session_id AS id, class_id AS \"classId\", date, " +
-            "start_time AS \"startTime\", end_time AS \"endTime\", status " +
-            "FROM class_sessions WHERE class_id=? ORDER BY date,start_time",
+            "SELECT cs.class_session_id AS id, cs.class_id AS \"classId\", cs.date, " +
+            "cs.start_time AS \"startTime\", cs.end_time AS \"endTime\", cs.status, " +
+            "EXISTS(SELECT 1 FROM teaching_schedules t WHERE t.class_id=cs.class_id " +
+            "AND t.date=cs.date AND t.start_time=cs.start_time AND t.end_time=cs.end_time " +
+            "AND t.status='ASSIGNED') AS \"teacherAssigned\", " +
+            "EXISTS(SELECT 1 FROM staff_schedules s WHERE s.class_id=cs.class_id " +
+            "AND s.date=cs.date AND s.start_time=cs.start_time AND s.end_time=cs.end_time " +
+            "AND s.work_type='CLASS_SUPPORT' AND s.status='ASSIGNED') AS \"csAssigned\" " +
+            "FROM class_sessions cs WHERE cs.class_id=? ORDER BY cs.date,cs.start_time",
             classId);
     }
 

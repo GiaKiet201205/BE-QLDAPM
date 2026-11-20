@@ -832,6 +832,10 @@ public class ClassManagementService {
                     "Student is not currently active in this class");
         }
 
+        // Serialize concurrent result upserts per student. Database uniqueness is
+        // a second line of defense against duplicate initial submissions.
+        jdbc.queryForObject("SELECT student_id FROM students WHERE student_id=? FOR UPDATE",
+                String.class, request.studentId());
         StudentResult result;
         if (hasAssignment) {
             Assignment assignment = assignmentRepository.findById(request.assignmentId())
@@ -873,8 +877,10 @@ public class ClassManagementService {
                             .build());
         }
 
-        if (request.score() == null || request.score().signum() < 0) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Result score cannot be negative");
+        if (request.score() == null || request.score().signum() < 0
+                || request.score().compareTo(new BigDecimal("999.99")) > 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Result score must be between 0 and 999.99");
         }
         result.setScore(request.score());
         result.setFeedback(trimToNull(request.feedback()));
@@ -924,6 +930,21 @@ public class ClassManagementService {
                     "Support shift is no longer attached to an active planned class lesson");
         }
 
+        // Preserve the original support shift and attendance provenance.
+        // Historical replacements must be rejected instead of retroactively
+        // attributing past work to a new CS.
+        if (!schedule.getDate().atTime(schedule.getStartTime())
+                .isAfter(java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Historical support shifts cannot be overridden");
+        }
+        if (schedule.getEmployeeId().equals(request.newCsId())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Replacement CS is already assigned");
+        }
+        java.util.stream.Stream.of(schedule.getEmployeeId(), request.newCsId())
+                .distinct().sorted().forEach(schedulingAccess::lockEmployee);
+        jdbc.queryForObject("SELECT class_id FROM classes WHERE class_id=? FOR UPDATE",
+                String.class, classId);
         Employee newCs = employeeRepository.findById(request.newCsId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
                         "Replacement CS not found"));
@@ -960,26 +981,46 @@ public class ClassManagementService {
                     "Replacement CS has an overlapping assigned shift");
         }
 
-        schedule.setEmployeeId(newCs.getEmployeeId());
-        // Admin accounts are not required to have an Employee row in this schema.
-        // Keep the existing employee-based assigned_by value and rely on AuditLog
-        // to record the authenticated admin who performed the override.
-        schedule.setAssignmentSource("ADMIN_OVERRIDE");
-        staffScheduleRepository.save(schedule);
+        String replacementId = newId("staff-schedule");
+        int cancelled = jdbc.update("UPDATE staff_schedules SET status='CANCELLED' " +
+                    "WHERE staff_schedule_id=? AND status='ASSIGNED'", scheduleId);
+        if (cancelled != 1) {
+            throw new ApiException(HttpStatus.CONFLICT, "Support assignment changed concurrently");
+        }
+        jdbc.update(
+            "INSERT INTO staff_schedules (staff_schedule_id,employee_id,class_id,workplace_id," +
+            "date,start_time,end_time,work_type,status,assigned_by,assignment_source) " +
+            "VALUES (?,?,?,?,?,?,?,?,'ASSIGNED',?,'ADMIN_OVERRIDE')",
+            replacementId, newCs.getEmployeeId(), classId, schedule.getWorkplaceId(),
+            schedule.getDate(), schedule.getStartTime(), schedule.getEndTime(),
+            schedule.getWorkType(), schedule.getAssignedById());
+        // Do not leave an obsolete course-wide manager scope behind after their
+        // last support shift has been cancelled by this override.
+        jdbc.update(
+            "UPDATE class_access_scopes scope SET " +
+            "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+            "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' ELSE 'CM_ASSIGNED_COURSE' END " +
+            "FROM classes c, employees e WHERE scope.class_id=c.class_id " +
+            "AND scope.employee_id=e.employee_id AND scope.class_id=? AND scope.employee_id=? " +
+            "AND scope.source IN ('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
+            "AND scope.status='ACTIVE' AND NOT EXISTS (" +
+            "SELECT 1 FROM staff_schedules s WHERE s.class_id=scope.class_id " +
+            "AND s.employee_id=scope.employee_id AND s.work_type='CLASS_SUPPORT' AND s.status='ASSIGNED')",
+            classId, schedule.getEmployeeId());
 
         audit(actor.username(), "OVERRIDE_CS_SUPPORT", classId,
-                "Reassigned support schedule " + scheduleId + " to "
-                        + newCs.getEmployeeId() + ". Reason: " + request.reason().trim());
+                "Cancelled " + scheduleId + "; created " + replacementId +
+                " for " + newCs.getEmployeeId() + ". Reason: " + request.reason().trim());
         return new StaffScheduleResponse(
-                schedule.getStaffScheduleId(),
-                schedule.getEmployeeId(),
+                replacementId,
+                newCs.getEmployeeId(),
                 newCs.getFullName(),
                 schedule.getDate(),
                 schedule.getStartTime(),
                 schedule.getEndTime(),
                 schedule.getWorkType(),
                 schedule.getStatus(),
-                schedule.getAssignmentSource());
+                "ADMIN_OVERRIDE");
     }
 
     @Transactional(readOnly = true)

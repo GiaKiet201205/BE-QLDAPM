@@ -219,6 +219,7 @@ model TeachingSchedule {
   date               DateTime @db.Date
   startTime          DateTime @map("start_time") @db.Time(0)
   endTime            DateTime @map("end_time") @db.Time(0)
+  campus             String?  @db.VarChar(100)
   status             String   @default("ASSIGNED") @db.VarChar(20)
   assignedById       String?  @map("assigned_by") @db.VarChar(50)
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -391,6 +392,8 @@ model StudentResult {
   exam        Exam?       @relation(fields: [examId], references: [examId], onDelete: Restrict)
   evaluatedBy Employee    @relation("ResultEvaluator", fields: [evaluatedById], references: [employeeId], onDelete: Restrict)
 
+  @@unique([studentId, classId, assignmentId], map: "student_result_unique_assignment")
+  @@unique([studentId, classId, examId], map: "student_result_unique_exam")
   @@index([studentId, classId])
   @@index([assignmentId])
   @@index([examId])
@@ -445,6 +448,62 @@ model StaffSalary {
 
   @@unique([employeeId, period])
   @@map("staff_salaries")
+}
+
+// Existing PayrollService JDBC tables; no Prisma cascade is allowed on
+// the polymorphic payroll_id/schedule_id references.
+model SalaryCalculationItem {
+  itemId           String   @id @map("item_id") @db.VarChar(50)
+  payrollSource    String   @map("payroll_source") @db.VarChar(20)
+  payrollId        String   @map("payroll_id") @db.VarChar(50)
+  scheduleId       String   @map("schedule_id") @db.VarChar(50)
+  workDate         DateTime @map("work_date") @db.Date
+  workType         String   @map("work_type") @db.VarChar(30)
+  attendanceStatus String?  @map("attendance_status") @db.VarChar(20)
+  workedHours      Decimal  @map("worked_hours") @db.Decimal(8, 2)
+  salaryRankId     String?  @map("salary_rank_id") @db.VarChar(50)
+  hourlyRate       Decimal  @map("hourly_rate") @db.Decimal(12, 2)
+  payFactor        Decimal  @default(1) @map("pay_factor") @db.Decimal(6, 4)
+  amount           Decimal  @db.Decimal(14, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([payrollSource, payrollId])
+  @@index([scheduleId])
+  @@map("salary_calculation_items")
+}
+
+model SalaryRankHistory {
+  historyId            String    @id @map("history_id") @db.VarChar(50)
+  employeeId           String    @map("employee_id") @db.VarChar(50)
+  previousSalaryRankId String?   @map("previous_salary_rank_id") @db.VarChar(50)
+  salaryRankId         String    @map("salary_rank_id") @db.VarChar(50)
+  amount               Decimal   @db.Decimal(14, 2)
+  effectiveAt          DateTime  @map("effective_at") @db.Timestamptz(6)
+  reviewRequestId      String?   @map("review_request_id") @db.VarChar(50)
+  approvedBy           String?   @map("approved_by") @db.VarChar(50)
+  reason               String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([employeeId, effectiveAt])
+  @@map("salary_rank_history")
+}
+
+model SalaryReviewRequest {
+  requestId            String    @id @map("request_id") @db.VarChar(50)
+  employeeId           String    @map("employee_id") @db.VarChar(50)
+  currentSalaryRankId  String?   @map("current_salary_rank_id") @db.VarChar(50)
+  proposedSalaryRankId String    @map("proposed_salary_rank_id") @db.VarChar(50)
+  proposedAmount       Decimal   @map("proposed_amount") @db.Decimal(14, 2)
+  requestedBy          String?   @map("requested_by") @db.VarChar(50)
+  reason               String    @db.Text
+  status               String    @default("PENDING") @db.VarChar(20)
+  decisionNote         String?   @map("decision_note") @db.Text
+  reviewedBy           String?   @map("reviewed_by") @db.VarChar(50)
+  requestedAt          DateTime  @default(now()) @map("requested_at") @db.Timestamptz(6)
+  reviewedAt           DateTime? @map("reviewed_at") @db.Timestamptz(6)
+
+  @@index([employeeId, status])
+  @@map("salary_review_requests")
 }
 
 model AuditLog {

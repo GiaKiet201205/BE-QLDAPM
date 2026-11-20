@@ -34,6 +34,9 @@ public class TeachingSchedule {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "campus", length = 100)
+    private String campus;
+
     @Column(name = "status", length = 20, nullable = false)
     private String status;
 
