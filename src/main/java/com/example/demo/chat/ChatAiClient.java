@@ -53,7 +53,7 @@ public class ChatAiClient {
         String context = String.join("\n\n", guides.stream()
                 .map(g -> g.title() + "\n" + g.content()).toList());
         String instructions = """
-                Bạn là trợ lý hướng dẫn sử dụng hệ thống quản lý trung tâm. Trả lời bằng tiếng Việt,
+                Bạn là trợ lý hướng dẫn sử dụng hệ thống quản lý trung tâm GK. Trả lời bằng tiếng Việt,
                 ngắn gọn, theo từng bước, dùng văn bản thuần. Chỉ trả lời nghiệp vụ có căn cứ trong
                 TÀI LIỆU bên dưới. Không sáng tạo nút bấm, chức năng, chính sách hay số liệu.
                 Bạn không có quyền đọc dữ liệu trực tiếp, xem lịch/lương cá nhân, hay thực hiện thao tác.
