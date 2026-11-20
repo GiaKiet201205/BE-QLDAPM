@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClassSessionService {
     private final JdbcTemplate db;
+    private final StudentClassScheduleGuard studentScheduleGuard;
 
     public record PlannedSessionInput(LocalDate date, LocalTime startTime, LocalTime endTime) {}
     public record RescheduleRequest(
@@ -117,9 +118,15 @@ public class ClassSessionService {
 
     private List<Map<String,Object>> readSessions(String classId) {
         return db.queryForList(
-            "SELECT class_session_id AS id, class_id AS \"classId\", date, " +
-            "start_time AS \"startTime\", end_time AS \"endTime\", status " +
-            "FROM class_sessions WHERE class_id=? ORDER BY date,start_time",
+            "SELECT cs.class_session_id AS id, cs.class_id AS \"classId\", cs.date, " +
+            "cs.start_time AS \"startTime\", cs.end_time AS \"endTime\", cs.status, " +
+            "EXISTS(SELECT 1 FROM teaching_schedules t WHERE t.class_id=cs.class_id " +
+            "AND t.date=cs.date AND t.start_time=cs.start_time AND t.end_time=cs.end_time " +
+            "AND t.status='ASSIGNED') AS \"teacherAssigned\", " +
+            "EXISTS(SELECT 1 FROM staff_schedules s WHERE s.class_id=cs.class_id " +
+            "AND s.date=cs.date AND s.start_time=cs.start_time AND s.end_time=cs.end_time " +
+            "AND s.work_type='CLASS_SUPPORT' AND s.status='ASSIGNED') AS \"csAssigned\" " +
+            "FROM class_sessions cs WHERE cs.class_id=? ORDER BY cs.date,cs.start_time",
             classId);
     }
 
@@ -204,6 +211,13 @@ public class ClassSessionService {
             }
         }
 
+        if (makeUp) {
+            studentScheduleGuard.lockClassStudents(classId);
+            studentScheduleGuard.validateTimetable(classId, List.of(
+                new StudentClassScheduleGuard.Slot(
+                    input.newDate(), input.newStartTime(), input.newEndTime())));
+        }
+
         // Cancel only assignments belonging to this one lesson, keeping payroll/audit history.
         db.update("UPDATE teaching_schedules SET status='CANCELLED' " +
                   "WHERE class_id=? AND date=? AND start_time=? AND end_time=? AND status='ASSIGNED'",
@@ -212,6 +226,20 @@ public class ClassSessionService {
                   "WHERE class_id=? AND work_type='CLASS_SUPPORT' " +
                   "AND date=? AND start_time=? AND end_time=? AND status='ASSIGNED'",
                   classId, oldDate, oldStart, oldEnd);
+        // Rescheduling can cancel the course manager's last support shift.
+        // Retain creator visibility, but revoke outdated full-class edit rights.
+        db.update(
+            "UPDATE class_access_scopes scope SET " +
+            "status=CASE WHEN c.created_by=e.username THEN 'ACTIVE' ELSE 'INACTIVE' END, " +
+            "source=CASE WHEN c.created_by=e.username THEN 'CREATED_BY_CS' " +
+            "ELSE 'CM_ASSIGNED_COURSE' END FROM classes c, employees e " +
+            "WHERE scope.class_id=c.class_id AND scope.employee_id=e.employee_id " +
+            "AND scope.class_id=? AND scope.status='ACTIVE' " +
+            "AND scope.source IN ('CM_ASSIGNED_COURSE','ASSIGNED_SCOPE','AUTO_ASSIGNED') " +
+            "AND NOT EXISTS (SELECT 1 FROM staff_schedules ss " +
+            "WHERE ss.class_id=scope.class_id AND ss.employee_id=scope.employee_id " +
+            "AND ss.work_type='CLASS_SUPPORT' AND ss.status='ASSIGNED')",
+            classId);
         db.update("UPDATE class_sessions SET status='CANCELLED' WHERE class_session_id=?",
                   input.originalSessionId());
         if (makeUp) {
@@ -278,6 +306,8 @@ public class ClassSessionService {
             desired.add(slot);
         }
 
+        studentScheduleGuard.lockClassStudents(classId);
+
         List<Map<String,Object>> assigned = db.queryForList(
             "SELECT date,start_time,end_time FROM teaching_schedules " +
             "WHERE class_id=? AND status='ASSIGNED' UNION ALL " +
@@ -299,6 +329,13 @@ public class ClassSessionService {
                 .map(item -> new Slot(((Date)item.get("date")).toLocalDate(),
                         LocalTime.parse(item.get("start_time").toString()), LocalTime.parse(item.get("end_time").toString())))
                 .collect(Collectors.toSet());
+        // Existing historical inconsistencies must not prevent unrelated plan
+        // edits. Validate only newly introduced slots against other classes.
+        studentScheduleGuard.validateTimetable(classId, desired.stream()
+            .filter(slot -> !old.contains(slot))
+            .map(slot -> new StudentClassScheduleGuard.Slot(
+                    slot.date(),slot.start(),slot.end()))
+            .toList());
         if (running) {
             // Extending a running course is append-only: no existing planned lesson
             // is allowed to vanish or change time. Past lessons remain historical.
