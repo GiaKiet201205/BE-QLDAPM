@@ -46,7 +46,12 @@ async function cleanupLegacyAutoSeed(prisma) {
     where: { employeeId: { startsWith: "auto-emp-" } },
   });
   await prisma.classSession.deleteMany({
-    where: { classSessionId: { startsWith: "auto-session-" } },
+    where: {
+      OR: [
+        { classSessionId: { startsWith: "auto-session-" } },
+        { classId: { startsWith: "auto-class-" } },
+      ],
+    },
   });
   await prisma.teachingSchedule.deleteMany({
     where: { teachingScheduleId: { startsWith: "auto-ts-" } },
@@ -203,7 +208,7 @@ async function seedEmployees(prisma, passwordHash) {
   const people = [
     {
       username: "teacher004",
-      email: "teacher004@iig-demo.local",
+      email: "teacher004@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-004",
       employeeCode: "GV-004",
@@ -215,7 +220,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "teacher005",
-      email: "teacher005@iig-demo.local",
+      email: "teacher005@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-005",
       employeeCode: "GV-005",
@@ -227,7 +232,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "teacher006",
-      email: "teacher006@iig-demo.local",
+      email: "teacher006@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-006",
       employeeCode: "GV-006",
@@ -239,7 +244,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "teacher007",
-      email: "teacher007@iig-demo.local",
+      email: "teacher007@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-007",
       employeeCode: "GV-007",
@@ -251,7 +256,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "teacher008",
-      email: "teacher008@iig-demo.local",
+      email: "teacher008@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-008",
       employeeCode: "GV-008",
@@ -263,7 +268,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "teacher009",
-      email: "teacher009@iig-demo.local",
+      email: "teacher009@gk-demo.local",
       roleId: "TEACHER",
       employeeId: "demo-teacher-009",
       employeeCode: "GV-009",
@@ -275,7 +280,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "cs004",
-      email: "cs004@iig-demo.local",
+      email: "cs004@gk-demo.local",
       roleId: "CS",
       employeeId: "demo-cs-004",
       employeeCode: "CS-004",
@@ -287,7 +292,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "cs005",
-      email: "cs005@iig-demo.local",
+      email: "cs005@gk-demo.local",
       roleId: "CS",
       employeeId: "demo-cs-005",
       employeeCode: "CS-005",
@@ -299,7 +304,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "cs006",
-      email: "cs006@iig-demo.local",
+      email: "cs006@gk-demo.local",
       roleId: "CS",
       employeeId: "demo-cs-006",
       employeeCode: "CS-006",
@@ -311,7 +316,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "sale004",
-      email: "sale004@iig-demo.local",
+      email: "sale004@gk-demo.local",
       roleId: "SALE",
       employeeId: "demo-sale-004",
       employeeCode: "SALE-004",
@@ -323,7 +328,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "sale005",
-      email: "sale005@iig-demo.local",
+      email: "sale005@gk-demo.local",
       roleId: "SALE",
       employeeId: "demo-sale-005",
       employeeCode: "SALE-005",
@@ -335,7 +340,7 @@ async function seedEmployees(prisma, passwordHash) {
     },
     {
       username: "sale006",
-      email: "sale006@iig-demo.local",
+      email: "sale006@gk-demo.local",
       roleId: "SALE",
       employeeId: "demo-sale-006",
       employeeCode: "SALE-006",
