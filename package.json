@@ -1,5 +1,5 @@
 {
-  "name": "iig-qlapm-database",
+  "name": "gk-academy-database",
   "private": true,
   "version": "1.0.0",
   "description": "Prisma tooling for the Spring Boot backend database schema, migrations and seed data.",
