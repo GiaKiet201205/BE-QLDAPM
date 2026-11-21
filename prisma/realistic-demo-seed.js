@@ -628,7 +628,7 @@ async function seedStudents(prisma) {
     ["demo-class-003", [3, 5, 6]],
     ["demo-class-002", [8, 9, 10]],
     ["demo-class-009", [7, 11, 12]],
-    ["demo-class-004", [14, 15, 16]],
+    ["demo-class-004", [13, 14, 15]],
     ["demo-class-005", [20, 21, 22]],
     ["demo-class-010", [1, 4, 5]],
   ];
