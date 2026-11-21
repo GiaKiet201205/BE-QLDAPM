@@ -25,18 +25,18 @@ async function main() {
   }
 
   const userSeeds = [
-    ["admin", "admin@iig.local", "ADMIN", null, null],
-    ["tc001", "tc001@iig.local", "TC", "emp-tc-001", "TC-001"],
-    ["cm001", "cm001@iig.local", "CM", "emp-cm-001", "CM-001"],
-    ["teacher001", "teacher001@iig.local", "TEACHER", "teacher-001", "GV-001"],
-    ["teacher002", "teacher002@iig.local", "TEACHER", "teacher-002", "GV-002"],
-    ["teacher003", "teacher003@iig.local", "TEACHER", "teacher-003", "GV-003"],
-    ["cs001", "cs001@iig.local", "CS", "cs-001", "CS-001"],
-    ["cs002", "cs002@iig.local", "CS", "cs-002", "CS-002"],
-    ["cs003", "cs003@iig.local", "CS", "cs-003", "CS-003"],
-    ["sale001", "sale001@iig.local", "SALE", "sale-001", "SALE-001"],
-    ["sale002", "sale002@iig.local", "SALE", "sale-002", "SALE-002"],
-    ["sale003", "sale003@iig.local", "SALE", "sale-003", "SALE-003"],
+    ["admin", "admin@gk.local", "ADMIN", null, null],
+    ["tc001", "tc001@gk.local", "TC", "emp-tc-001", "TC-001"],
+    ["cm001", "cm001@gk.local", "CM", "emp-cm-001", "CM-001"],
+    ["teacher001", "teacher001@gk.local", "TEACHER", "teacher-001", "GV-001"],
+    ["teacher002", "teacher002@gk.local", "TEACHER", "teacher-002", "GV-002"],
+    ["teacher003", "teacher003@gk.local", "TEACHER", "teacher-003", "GV-003"],
+    ["cs001", "cs001@gk.local", "CS", "cs-001", "CS-001"],
+    ["cs002", "cs002@gk.local", "CS", "cs-002", "CS-002"],
+    ["cs003", "cs003@gk.local", "CS", "cs-003", "CS-003"],
+    ["sale001", "sale001@gk.local", "SALE", "sale-001", "SALE-001"],
+    ["sale002", "sale002@gk.local", "SALE", "sale-002", "SALE-002"],
+    ["sale003", "sale003@gk.local", "SALE", "sale-003", "SALE-003"],
   ];
 
   for (const [username, email, roleId, employeeId, employeeCode] of userSeeds) {
@@ -258,7 +258,7 @@ async function main() {
       update: {},
       create: {
         username: autoUsername,
-        email: `auto.user.${i}@iig.local`,
+        email: `auto.user.${i}@gk.local`,
         passwordHash,
         roleId: "TEACHER",
         status: "ACTIVE",
