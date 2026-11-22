@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const { seedRealisticDemoData } = require("./realistic-demo-seed");
 
 const prisma = new PrismaClient();
 
