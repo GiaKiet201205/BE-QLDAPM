@@ -44,17 +44,45 @@ public class ChatKnowledge {
     }
 
     public List<Guide> search(String role, String query) {
-        Set<String> terms = terms(query);
+        Set<String> terms = terms(expand(query));
         return available(role).stream()
                 .map(g -> Map.entry(g, score(g, terms)))
                 .filter(entry -> entry.getValue() > 0)
                 .sorted(Map.Entry.<Guide, Integer>comparingByValue().reversed())
-                .limit(3).map(Map.Entry::getKey).toList();
+                .limit(4).map(Map.Entry::getKey).toList();
+    }
+
+    boolean outsideRole(String role, String query) {
+        if ("ADMIN".equals(role)) return false;
+        Set<String> queryTerms = terms(expand(query));
+        int allowed = available(role).stream().mapToInt(g -> score(g, queryTerms)).max().orElse(0);
+        int forbidden = guides.stream().filter(g -> !g.roles().contains(role))
+                .mapToInt(g -> score(g, queryTerms)).max().orElse(0);
+        return forbidden > allowed;
     }
 
     private int score(Guide guide, Set<String> query) {
-        Set<String> title = terms(guide.title() + " " + guide.question() + " " + guide.keywords());
-        return (int) query.stream().filter(title::contains).count();
+        Set<String> title = terms(expand(guide.title() + " " + guide.question() + " " + guide.keywords()));
+        Set<String> body = terms(expand(guide.content()));
+        int weighted = query.stream().mapToInt(t -> title.contains(t) ? 5 : body.contains(t) ? 1 : 0).sum();
+        // Prefer documents that cover the full question, rather than one generic shared word.
+        return weighted;
+    }
+
+    private static String expand(String text) {
+        String q = normalize(text);
+        for (var synonyms : List.of(
+                List.of("sinh vien", "hoc sinh", "hoc vien", "student"),
+                List.of("giang vien", "giao vien", "teacher"),
+                List.of("nhan su", "nhan vien", "employee"),
+                List.of("bao cao", "thong ke", "report"),
+                List.of("cham cong", "diem danh", "attendance"),
+                List.of("hoc phi", "thanh toan", "payment"),
+                List.of("dang nhap", "login"),
+                List.of("don mua", "don hang", "order"))) {
+            if (synonyms.stream().anyMatch(s -> (" " + normalize(text) + " ").contains(" " + s + " "))) q += " " + String.join(" ", synonyms);
+        }
+        return q;
     }
 
     static String normalize(String text) {

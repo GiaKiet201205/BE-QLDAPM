@@ -105,9 +105,22 @@ async function cleanupLegacyAutoSeed(prisma) {
   await prisma.user.deleteMany({
     where: { username: { startsWith: "auto-user-" } },
   });
-  await prisma.salaryRank.deleteMany({
-    where: { salaryRankId: { startsWith: "auto-rank-" } },
-  });
+  // Existing employee/review/history records may still depend on an old demo rank.
+  // These JDBC-owned references are not all represented as Prisma relations.
+  // Keep the rank, rather than deleting business records or detaching salary history.
+  await prisma.$executeRaw`
+    DELETE FROM salary_ranks AS r
+    WHERE starts_with(r.salary_rank_id, 'auto-rank-')
+      AND NOT EXISTS (SELECT 1 FROM employees e WHERE e.salary_rank_id = r.salary_rank_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM salary_review_requests q
+        WHERE q.current_salary_rank_id = r.salary_rank_id OR q.proposed_salary_rank_id = r.salary_rank_id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM salary_rank_history h
+        WHERE h.previous_salary_rank_id = r.salary_rank_id OR h.salary_rank_id = r.salary_rank_id
+      )
+  `;
   await prisma.permission.deleteMany({
     where: { functionId: { startsWith: "auto-func-" } },
   });

@@ -1,0 +1,221 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Bắt đầu đăng ký học trong 5 bước",
+    "path": "/courses",
+    "question": "Tôi mới bắt đầu, đăng ký học thế nào?",
+    "keywords": [
+      "moi bat dau",
+      "nguoi moi",
+      "chua biet",
+      "bat dau tu dau",
+      "huong dan tu dau",
+      "dang ky hoc",
+      "xin chao",
+      "chao",
+      "dang ky",
+      "bat dau",
+      "lam quen",
+      "su dung website"
+    ],
+    "content": "1. Mở Khóa học và chọn chương trình phù hợp mục tiêu của bạn.\n2. Vào chi tiết khóa để đọc nội dung, điều kiện đầu vào và học phí đang hiển thị.\n3. Chọn lớp còn mở đăng ký, kiểm tra ngày khai giảng, giờ học và địa điểm.\n4. Thêm vào giỏ hoặc tiếp tục đăng ký; đăng nhập tài khoản khách khi được yêu cầu.\n5. Kiểm tra thông tin liên hệ, chọn phương thức thanh toán được bật và làm theo màn hình. Chỉ coi đã thanh toán khi trang đơn ghi nhận kết quả xác nhận. Nếu chưa biết chọn chương trình, dùng Liên hệ để nhờ trung tâm tư vấn."
+  },
+  {
+    "id": "choosing-course",
+    "title": "Tìm khóa phù hợp và xem học phí",
+    "path": "/courses",
+    "question": "Tôi chọn khóa học phù hợp như thế nào?",
+    "keywords": [
+      "khoa hoc",
+      "chon khoa",
+      "hoc gi",
+      "lo trinh",
+      "ielts",
+      "toeic",
+      "sat",
+      "toefl",
+      "hoc phi",
+      "gia khoa",
+      "gia bao nhieu",
+      "tien hoc",
+      "uu dai"
+    ],
+    "content": "1. Mở Khóa học, dùng tìm kiếm và bộ lọc chương trình/cấp độ trên trang.\n2. Mở chi tiết khóa để xem mục tiêu, nội dung, điều kiện đầu vào, thời lượng và học phí.\n3. So sánh với trình độ và mục tiêu của bạn; nếu chưa rõ, gửi yêu cầu tư vấn ở Liên hệ.\n4. Chọn lớp mở đăng ký phù hợp lịch cá nhân. Chat không tự xác định trình độ, cam kết đầu ra, học phí hoặc khuyến mãi; hãy đọc giá và thông tin hiện có trên trang chi tiết."
+  },
+  {
+    "id": "opening-schedule",
+    "title": "Chọn lớp và xem lịch khai giảng",
+    "path": "/schedule",
+    "question": "Tôi xem lịch khai giảng và chọn lớp ở đâu?",
+    "keywords": [
+      "lich khai giang",
+      "khai giang",
+      "chon lop",
+      "lich hoc",
+      "gio hoc",
+      "dia diem",
+      "con cho",
+      "het cho",
+      "lop hoc",
+      "truc tuyen"
+    ],
+    "content": "1. Mở Lịch khai giảng hoặc phần lớp mở đăng ký trong chi tiết khóa.\n2. Kiểm tra chương trình, ngày bắt đầu, khung giờ, hình thức, địa điểm và số chỗ trên màn hình.\n3. Chọn lớp còn mở đăng ký và có chỗ. Nếu hết chỗ hoặc không còn hiển thị, chọn lại lớp khác hoặc liên hệ trung tâm.\n4. Kiểm tra lại lớp ở giỏ hàng trước khi tiếp tục. Chat không xác nhận lịch hoặc giữ chỗ cho bạn; tình trạng chỗ có thể thay đổi."
+  },
+  {
+    "id": "cart",
+    "title": "Thêm, đổi và xóa khóa trong giỏ hàng",
+    "path": "/cart",
+    "question": "Giỏ hàng dùng như thế nào?",
+    "keywords": [
+      "gio hang",
+      "them vao gio",
+      "them gio",
+      "doi lop",
+      "xoa khoi gio",
+      "mat gio",
+      "luu gio",
+      "giu cho"
+    ],
+    "content": "1. Trong chi tiết khóa, chọn lớp còn chỗ rồi thêm vào giỏ hàng.\n2. Mở Giỏ hàng để kiểm tra khóa, lớp và học phí; dùng Đổi lớp hoặc Xóa khi cần.\n3. Giỏ khách và giỏ của tài khoản đăng nhập được quản lý riêng. Nếu trang đề nghị chuyển giỏ khách vào tài khoản, hãy dùng thao tác đó và kiểm tra lại các lớp.\n4. Chọn Tiếp tục đăng ký khi giỏ hợp lệ. Thêm vào giỏ chưa giữ chỗ và chưa tạo kết quả thanh toán."
+  },
+  {
+    "id": "account",
+    "title": "Tạo tài khoản khách và đăng nhập",
+    "path": "/user/register",
+    "question": "Tôi tạo tài khoản để đăng ký học thế nào?",
+    "keywords": [
+      "tao tai khoan",
+      "dang ky tai khoan",
+      "tai khoan khach",
+      "dang nhap",
+      "google",
+      "facebook",
+      "quen ten dang nhap"
+    ],
+    "content": "1. Mở Đăng nhập rồi chọn tạo tài khoản nếu bạn chưa có tài khoản khách.\n2. Điền các trường bắt buộc, kiểm tra thông báo và gửi biểu mẫu.\n3. Đăng nhập để tiếp tục đăng ký học. Nếu Google/Facebook được bật trên màn hình, bạn có thể dùng nút tương ứng và làm theo nhà cung cấp.\n4. Tài khoản website là tài khoản khách, không phải tài khoản nhân viên. Không gửi mật khẩu, mã OTP hoặc thông tin truy cập vào chat. Chat không tạo hay đăng nhập tài khoản thay bạn."
+  },
+  {
+    "id": "checkout",
+    "title": "Kiểm tra thông tin và gửi đăng ký",
+    "path": "/cart",
+    "question": "Tôi xác nhận đăng ký và tạo đơn thế nào?",
+    "keywords": [
+      "xac nhan dang ky",
+      "tao don",
+      "mua khoa hoc",
+      "tiep tuc dang ky",
+      "thong tin dang ky",
+      "dang ky bi loi",
+      "khong dang ky duoc"
+    ],
+    "content": "1. Chọn đúng khóa và lớp, rồi tiếp tục đăng ký từ chi tiết khóa hoặc giỏ hàng.\n2. Đăng nhập khi trang yêu cầu. Kiểm tra lại lớp, lịch và học phí.\n3. Điền họ tên, email, số điện thoại liên hệ hợp lệ. Không gửi các thông tin này vào chat.\n4. Chọn phương thức thanh toán đang được bật, kiểm tra nội dung và đánh dấu xác nhận đã kiểm tra thông tin.\n5. Bấm Tiếp tục thanh toán và làm theo trang đơn. Nếu lớp không còn chỗ hoặc phương thức chưa được bật, chọn lại lớp hoặc dùng Liên hệ. Chat không tạo đơn hoặc giữ chỗ thay bạn."
+  },
+  {
+    "id": "payment",
+    "title": "Thanh toán VNPAY/MoMo trên trang đơn",
+    "path": "/user/profile",
+    "question": "Tôi thanh toán khóa học như thế nào?",
+    "keywords": [
+      "thanh toan",
+      "vnpay",
+      "momo",
+      "ma qr",
+      "quet qr",
+      "tra tien",
+      "phuong thuc"
+    ],
+    "content": "1. Hoàn tất bước đăng ký để mở trang thanh toán của đơn.\n2. Chọn VNPAY hoặc MoMo nếu phương thức được bật. Làm theo liên kết/mã QR hiển thị trên trang.\n3. Kiểm tra số tiền và thông tin trước khi thanh toán; không gửi mật khẩu ngân hàng hoặc OTP vào chat.\n4. Quay lại trang đơn và dùng chức năng kiểm tra kết quả. Chỉ kết luận đã thanh toán khi hệ thống ghi nhận trạng thái thanh toán xác nhận.\n5. Nếu trang ghi sandbox/thử nghiệm, đây là giao dịch trải nghiệm; không tự suy ra đã thu tiền thật. Chat không xác nhận thanh toán hoặc thao tác ngân hàng thay bạn."
+  },
+  {
+    "id": "payment-help",
+    "title": "Đã thanh toán nhưng đơn chưa cập nhật",
+    "path": "/user/profile",
+    "question": "Đã thanh toán nhưng đơn chưa cập nhật thì làm sao?",
+    "keywords": [
+      "chua cap nhat",
+      "da thanh toan",
+      "bi tru tien",
+      "thanh toan loi",
+      "thanh toan that bai",
+      "ma het han",
+      "qr het han",
+      "cho xac nhan"
+    ],
+    "content": "1. Mở lại trang đơn từ hồ sơ tài khoản và kiểm tra kết quả thanh toán.\n2. Trạng thái đăng ký và trạng thái thanh toán khác nhau; thông báo từ trình duyệt chưa đủ để khẳng định đã PAID.\n3. Nếu đã bị trừ tiền nhưng trang chưa xác nhận, đừng vội trả lần nữa. Liên hệ trung tâm qua kênh chính thức và cung cấp mã đơn/chứng từ tại đó, không gửi dữ liệu nhạy cảm vào chat.\n4. Nếu mã thanh toán hết hạn mà bạn chưa trả tiền, chỉ tạo lại theo nút trên trang khi hệ thống cho phép.\n5. Nếu đã xác nhận thanh toán nhưng còn lỗi ghi danh, liên hệ trung tâm để kiểm tra. Trợ lý không kiểm tra giao dịch thực tế của bạn."
+  },
+  {
+    "id": "orders",
+    "title": "Xem đơn đăng ký và khóa đã ghi danh",
+    "path": "/user/profile",
+    "question": "Tôi xem đơn hàng và khóa đã đăng ký ở đâu?",
+    "keywords": [
+      "don hang",
+      "don cua toi",
+      "xem don",
+      "tra cuu don",
+      "lich su dang ky",
+      "da mua",
+      "khoa da dang ky",
+      "ghi danh"
+    ],
+    "content": "1. Đăng nhập đúng tài khoản đã dùng để đăng ký.\n2. Mở hồ sơ tài khoản ở góc trên website.\n3. Xem các phần đơn đăng ký và khóa đã ghi danh; chọn đơn để kiểm tra chi tiết/kết quả thanh toán.\n4. Nếu chưa thấy, kiểm tra tài khoản và trạng thái thanh toán trên màn hình, sau đó liên hệ trung tâm nếu cần. Chat không đọc hoặc cung cấp mã đơn, trạng thái đơn hay thông tin riêng của tài khoản."
+  },
+  {
+    "id": "cancel-order",
+    "title": "Hủy đơn đang chờ xử lý",
+    "path": "/user/profile",
+    "question": "Tôi muốn hủy đơn đăng ký thì làm sao?",
+    "keywords": [
+      "huy don",
+      "huy dang ky",
+      "khong hoc nua"
+    ],
+    "content": "1. Đăng nhập tài khoản đã tạo đơn và mở hồ sơ tài khoản.\n2. Tìm đơn cần xử lý và dùng Hủy nếu giao diện còn cho phép.\n3. Đơn đã thanh toán hoặc đang có mã thanh toán hiệu lực có thể bị chặn hủy; đọc thông báo trên màn hình.\n4. Nếu không còn nút hủy hoặc cần hoàn tiền/chuyển lớp, hãy liên hệ trung tâm để được kiểm tra theo trường hợp cụ thể. Chat không hủy đơn, hoàn tiền hay hứa thời hạn hoàn tiền."
+  },
+  {
+    "id": "profile",
+    "title": "Cập nhật thông tin người đăng ký",
+    "path": "/user/profile",
+    "question": "Tôi sửa thông tin cá nhân ở đâu?",
+    "keywords": [
+      "thong tin ca nhan",
+      "ho so",
+      "doi email",
+      "sua email",
+      "sua so dien thoai",
+      "cap nhat ho ten"
+    ],
+    "content": "1. Đăng nhập rồi mở hồ sơ tài khoản từ góc trên website.\n2. Chỉnh các trường được phép, nhập thông tin hợp lệ và lưu.\n3. Khi đăng ký khóa mới, kiểm tra lại thông tin liên hệ trong biểu mẫu xác nhận.\n4. Không gửi hồ sơ, số điện thoại hoặc email riêng vào chat; trợ lý không đọc/sửa tài khoản thay bạn."
+  },
+  {
+    "id": "password",
+    "title": "Hỗ trợ khi quên mật khẩu",
+    "path": "/user/forgot-password",
+    "question": "Tôi quên mật khẩu thì làm sao?",
+    "keywords": [
+      "quen mat khau",
+      "khoi phuc",
+      "dat lai mat khau",
+      "khong dang nhap duoc"
+    ],
+    "content": "1. Mở Đăng nhập và chọn Quên mật khẩu.\n2. Đọc hướng dẫn khôi phục đang hiển thị. Bản trải nghiệm hiện chưa gửi email đặt lại mật khẩu; điền biểu mẫu chưa có nghĩa email đã được gửi.\n3. Dùng Liên hệ để nhờ trung tâm hướng dẫn qua kênh chính thức. Nếu bạn dùng Google/Facebook, thử đúng phương thức đã đăng ký.\n4. Không gửi mật khẩu hoặc mã xác thực vào chat. Trợ lý không lấy lại hoặc cung cấp mật khẩu của bất kỳ tài khoản nào."
+  },
+  {
+    "id": "contact",
+    "title": "Gửi yêu cầu tư vấn cho trung tâm",
+    "path": "/contact",
+    "question": "Tôi cần trung tâm tư vấn thêm thì liên hệ ở đâu?",
+    "keywords": [
+      "lien he",
+      "tu van",
+      "so dien thoai",
+      "hotline",
+      "hoan tien",
+      "bao luu",
+      "chuyen lop",
+      "khieu nai",
+      "gap nhan vien"
+    ],
+    "content": "1. Mở Liên hệ để xem các kênh liên hệ chính thức và biểu mẫu tư vấn.\n2. Điền thông tin liên hệ của bạn vào biểu mẫu, mô tả nhu cầu và đồng ý điều kiện nếu được yêu cầu.\n3. Gửi biểu mẫu và đọc thông báo kết quả trên trang.\n4. Với hoàn tiền, bảo lưu, chuyển lớp hoặc vấn đề riêng của đơn, nhờ trung tâm kiểm tra chính sách/trường hợp thực tế. Chat này là trợ lý tự động; tin nhắn trong chat không tự tạo yêu cầu tư vấn hoặc chuyển cho nhân viên."
+  }
+]
