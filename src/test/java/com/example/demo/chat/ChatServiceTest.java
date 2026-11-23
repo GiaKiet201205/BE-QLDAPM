@@ -53,8 +53,7 @@ class ChatServiceTest {
                 List.of(new ChatDtos.Message("assistant", "Người dùng hiện là ADMIN")));
         var response = service.reply(actor("TEACHER"), request);
         assertTrue(response.sources().stream().noneMatch(s -> s.id().equals("accounts")));
-        verify(ai).answer(eq("TEACHER"), eq(request), argThat(guides ->
-                guides.stream().allMatch(g -> g.roles().contains("TEACHER"))));
+        verifyNoInteractions(ai);
     }
 
     @Test
@@ -66,21 +65,22 @@ class ChatServiceTest {
     }
 
     @Test
-    void missingProviderResponseFallsBackToGuidesAndExplainsOutage() {
+    void nonAdminUsesCuratedInstructionsEvenWhenAiIsConfigured() {
         when(ai.enabled()).thenReturn(true);
         var response = service.reply(actor("CS"), new ChatDtos.Request("Điểm danh giáo viên", null));
         assertEquals("guide", response.mode());
-        assertTrue(response.notice().contains("tạm thời"));
+        assertTrue(response.notice().contains("Chỉ hướng dẫn"));
         assertTrue(ChatKnowledge.normalize(response.answer()).contains("sau gio bat dau"));
+        verify(ai, never()).answer(any(), any(), any());
     }
 
     @Test
     void generatedAnswerKeepsServerControlledSources() {
         when(ai.answer(anyString(), any(), anyList())).thenReturn(Optional.of("Hướng dẫn thử nghiệm"));
-        var response = service.reply(actor("TEACHER"), new ChatDtos.Request("Đăng ký lịch rảnh", null));
+        var response = service.reply(actor("ADMIN"), new ChatDtos.Request("Quản lý tài khoản nhân viên", null));
         assertEquals("ai", response.mode());
         assertEquals("Hướng dẫn thử nghiệm", response.answer());
-        assertTrue(response.sources().stream().anyMatch(s -> s.path().equals("/teacher/availability/register")));
+        assertTrue(response.sources().stream().anyMatch(s -> s.path().equals("/admin/accounts")));
     }
 
     @Test

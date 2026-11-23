@@ -19,7 +19,8 @@ async function main() {
 
     if (!isEmpty) {
       console.log(
-        "Existing database detected; skipping demo seed to preserve data. Migrations have been applied."
+        "Existing database detected; skipping demo seed to preserve data. Migrations have been applied. " +
+        "To explicitly refresh demo data, run npm run db:seed:refresh-demo (back up the database first)."
       );
       return;
     }

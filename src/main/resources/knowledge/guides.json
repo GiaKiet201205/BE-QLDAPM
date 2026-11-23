@@ -1,20 +1,42 @@
 [
   {
-    "id": "availability",
+    "id": "availability-teacher",
     "title": "Đăng ký lịch rảnh",
     "roles": [
-      "TEACHER",
-      "SALE",
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/availability/register"
+    },
+    "question": "Tôi đăng ký lịch rảnh như thế nào?",
+    "keywords": "availability dang ky lich ranh ca dinh ky tuan",
+    "content": "1. Mở Đăng ký lịch rảnh và chọn tuần.\n2. Nhập ngày, giờ bắt đầu, giờ kết thúc và loại lịch theo tuần hoặc định kỳ. Giờ kết thúc phải sau giờ bắt đầu; tránh khung giờ trùng nhau.\n3. Gửi đăng ký và theo dõi trạng thái trên màn hình. Lịch rảnh được duyệt chưa có nghĩa là đã được phân công. Chat chỉ hướng dẫn thao tác, không đọc lịch của bạn."
+  },
+  {
+    "id": "availability-sale",
+    "title": "Đăng ký lịch rảnh",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/availability/register"
+    },
+    "question": "Tôi đăng ký lịch rảnh như thế nào?",
+    "keywords": "availability dang ky lich ranh ca dinh ky tuan",
+    "content": "1. Mở Đăng ký lịch rảnh và chọn tuần.\n2. Nhập ngày, giờ bắt đầu, giờ kết thúc và loại lịch theo tuần hoặc định kỳ. Giờ kết thúc phải sau giờ bắt đầu; tránh khung giờ trùng nhau.\n3. Gửi đăng ký và theo dõi trạng thái trên màn hình. Lịch rảnh được duyệt chưa có nghĩa là đã được phân công. Chat chỉ hướng dẫn thao tác, không đọc lịch của bạn."
+  },
+  {
+    "id": "availability-cs",
+    "title": "Đăng ký lịch rảnh",
+    "roles": [
       "CS"
     ],
     "paths": {
-      "TEACHER": "/availability/register",
-      "SALE": "/availability/register",
       "CS": "/availability/register"
     },
     "question": "Tôi đăng ký lịch rảnh như thế nào?",
     "keywords": "availability dang ky lich ranh ca dinh ky tuan",
-    "content": "1. Mở Đăng ký lịch rảnh và chọn tuần cần đăng ký.\n2. Chọn thêm lịch rảnh, nhập ngày, giờ bắt đầu, giờ kết thúc và loại lịch theo tuần hoặc định kỳ. Giờ kết thúc phải sau giờ bắt đầu.\n3. Gửi đăng ký và theo dõi trạng thái xét duyệt. Tránh đăng ký khoảng thời gian trùng nhau.\n4. Lịch rảnh cần được TC hoặc CM xét duyệt theo nhóm nhân sự; lịch rảnh được duyệt chưa có nghĩa là đã được phân công."
+    "content": "1. Mở Đăng ký lịch rảnh và chọn tuần.\n2. Nhập ngày, giờ bắt đầu, giờ kết thúc và loại lịch theo tuần hoặc định kỳ. Giờ kết thúc phải sau giờ bắt đầu; tránh khung giờ trùng nhau.\n3. Gửi đăng ký và theo dõi trạng thái trên màn hình. Lịch rảnh được duyệt chưa có nghĩa là đã được phân công. Chat chỉ hướng dẫn thao tác, không đọc lịch của bạn."
   },
   {
     "id": "teacher-assignment",
@@ -27,7 +49,7 @@
     },
     "question": "Làm thế nào để phân công giáo viên cho lớp?",
     "keywords": "phan cong giao vien lich day duyet ranh trung xung dot teacher",
-    "content": "1. Mở Lịch rảnh & Phân công, chọn thời gian và lớp cần phân công.\n2. Kiểm tra lớp đã có kế hoạch buổi học và ở trạng thái phù hợp để phân công.\n3. Xét duyệt lịch rảnh của giáo viên trước khi phân công.\n4. Chọn giáo viên có lịch rảnh đã được duyệt bao phủ buổi học, kiểm tra xung đột rồi lưu phân công. Lịch phải khớp buổi học đã lên kế hoạch.\n5. Nếu đã có điểm danh, không thể đổi giáo viên, lớp hoặc thời gian của phân công đó."
+    "content": "1. Mở Lịch rảnh & Phân công.\n2. Chọn tuần và kiểm tra đăng ký lịch rảnh của giáo viên trong phạm vi quản lý.\n3. Duyệt lịch rảnh phù hợp, chọn lớp và buổi trong kế hoạch được phép phân công.\n4. Chọn giáo viên có lịch rảnh đáp ứng đủ khung giờ, kiểm tra xung đột rồi lưu. Nếu đã có điểm danh, lịch sử có thể không được chỉnh sửa. Chat không đọc lịch hay thực hiện duyệt/phân công."
   },
   {
     "id": "sale-assignment",
@@ -40,7 +62,7 @@
     },
     "question": "Làm thế nào để phân công ca làm cho Sale?",
     "keywords": "phan cong sale ca lich lam duyet ranh trung",
-    "content": "1. Mở Lịch rảnh & Phân công Sale và chọn khoảng thời gian cần sắp xếp.\n2. Kiểm tra và xét duyệt lịch rảnh của nhân viên Sale.\n3. Chọn nhân viên và ca nằm trong lịch rảnh đã duyệt; kiểm tra xung đột.\n4. Lưu phân công, sau đó kiểm tra lại lịch. Đăng ký lịch rảnh không tự tạo ca làm."
+    "content": "1. Mở Lịch rảnh & Phân công Sale.\n2. Chọn tuần và xem đăng ký lịch rảnh của nhân viên Sale thuộc phạm vi quản lý.\n3. Xét duyệt đăng ký, chọn ca và nhân viên phù hợp khung giờ.\n4. Kiểm tra trùng ca rồi lưu trên giao diện. Chat không đọc dữ liệu hoặc tự duyệt/phân công."
   },
   {
     "id": "cs-assignment",
@@ -53,24 +75,46 @@
     },
     "question": "Tôi phân công CS hỗ trợ lớp như thế nào?",
     "keywords": "phan cong cs ho tro lop ca lich lam ranh",
-    "content": "1. Mở Lịch rảnh & Phân công CS.\n2. Xét duyệt lịch rảnh của CS và chọn buổi học cần hỗ trợ trong kế hoạch lớp.\n3. Phân công CS có lịch rảnh phù hợp vào đúng lớp, ngày, giờ bắt đầu và kết thúc của buổi học; kiểm tra trùng lịch trước khi lưu.\n4. CS được phân công hỗ trợ đúng buổi mới có thể xác nhận điểm danh giáo viên của buổi đó sau giờ bắt đầu."
+    "content": "1. Mở Lịch rảnh & Phân công CS.\n2. Xem và xét duyệt lịch rảnh của nhân viên CS trong phạm vi quản lý.\n3. Chọn buổi hỗ trợ đúng lớp, ngày và giờ trong kế hoạch được cấp quyền.\n4. Chọn nhân viên đáp ứng lịch rảnh, kiểm tra xung đột rồi lưu. Chat không đọc dữ liệu hoặc tự duyệt/phân công."
   },
   {
-    "id": "my-schedule",
+    "id": "my-schedule-teacher",
     "title": "Xem lịch được phân công",
     "roles": [
-      "TEACHER",
-      "SALE",
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/teaching-schedule"
+    },
+    "question": "Tôi xem lịch được phân công ở đâu?",
+    "keywords": "lich day lam ca ngay mai hom nay tuan schedule",
+    "content": "1. Mở lịch cá nhân từ liên kết bên dưới.\n2. Chọn tuần cần xem, kiểm tra các buổi/ca đã được phân công và trạng thái hiển thị.\n3. Nếu chưa thấy phân công, kiểm tra đăng ký lịch rảnh và liên hệ người quản lý. Chat không tra cứu hoặc xác nhận lịch thực tế."
+  },
+  {
+    "id": "my-schedule-sale",
+    "title": "Xem lịch được phân công",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/availability/mine"
+    },
+    "question": "Tôi xem lịch được phân công ở đâu?",
+    "keywords": "lich day lam ca ngay mai hom nay tuan schedule",
+    "content": "1. Mở lịch cá nhân từ liên kết bên dưới.\n2. Chọn tuần cần xem, kiểm tra các buổi/ca đã được phân công và trạng thái hiển thị.\n3. Nếu chưa thấy phân công, kiểm tra đăng ký lịch rảnh và liên hệ người quản lý. Chat không tra cứu hoặc xác nhận lịch thực tế."
+  },
+  {
+    "id": "my-schedule-cs",
+    "title": "Xem lịch được phân công",
+    "roles": [
       "CS"
     ],
     "paths": {
-      "TEACHER": "/teaching-schedule",
-      "SALE": "/availability/mine",
       "CS": "/my-shifts"
     },
     "question": "Tôi xem lịch được phân công ở đâu?",
     "keywords": "lich day lam ca ngay mai hom nay tuan schedule",
-    "content": "1. Mở màn hình lịch cá nhân từ liên kết bên dưới.\n2. Chọn tuần cần xem và kiểm tra các buổi hoặc ca đã được phân công.\n3. Nếu đã đăng ký lịch rảnh nhưng chưa thấy lịch làm, kiểm tra trạng thái duyệt và liên hệ TC (giáo viên) hoặc CM (Sale/CS).\nTrợ lý chưa đọc lịch thực tế của bạn, vì vậy không thể xác nhận ngày nào bạn có ca hoặc buổi dạy."
+    "content": "1. Mở lịch cá nhân từ liên kết bên dưới.\n2. Chọn tuần cần xem, kiểm tra các buổi/ca đã được phân công và trạng thái hiển thị.\n3. Nếu chưa thấy phân công, kiểm tra đăng ký lịch rảnh và liên hệ người quản lý. Chat không tra cứu hoặc xác nhận lịch thực tế."
   },
   {
     "id": "attendance",
@@ -83,22 +127,33 @@
     },
     "question": "Tôi điểm danh giáo viên như thế nào?",
     "keywords": "diem danh giao vien co mat vang muon attendance",
-    "content": "1. Mở Quản lý lớp học, chọn lớp được phép truy cập và mở tab Điểm danh GV.\n2. Chọn buổi học mà bạn được phân công hỗ trợ đúng lớp, ngày và khung giờ.\n3. Sau giờ bắt đầu buổi học, chọn Có mặt, Vắng mặt hoặc Đi muộn và lưu.\n4. Nếu không lưu được, kiểm tra phân công hỗ trợ, thời gian bắt đầu và trạng thái buổi học. Chưa ghi nhận không đồng nghĩa với vắng mặt.\nBạn không thể điểm danh thay cho buổi không thuộc phân công hỗ trợ của mình."
+    "content": "1. Mở Quản lý lớp học và chọn lớp bạn được phân công hỗ trợ.\n2. Mở tab Điểm danh GV, chọn đúng buổi, ngày và khung giờ hỗ trợ.\n3. Sau giờ bắt đầu, chọn Có mặt, Vắng mặt hoặc Đi muộn và lưu.\n4. Nếu không lưu được, kiểm tra phân công, thời gian và trạng thái buổi. Chưa ghi nhận không đồng nghĩa vắng mặt. Bạn không thể điểm danh buổi ngoài phạm vi hỗ trợ. Chat không đọc kết quả điểm danh."
   },
   {
     "id": "classes",
     "title": "Quản lý lớp và kế hoạch buổi học",
     "roles": [
-      "ADMIN",
-      "CS"
+      "ADMIN"
     ],
     "paths": {
-      "ADMIN": "/classes",
-      "CS": "/classes/update"
+      "ADMIN": "/classes"
     },
     "question": "Tôi quản lý lớp và kế hoạch buổi học như thế nào?",
     "keywords": "lop hoc ke hoach buoi tao ready draft running chuyen trang thai",
     "content": "1. Mở Quản lý lớp học và chọn lớp trong phạm vi được cấp quyền.\n2. Khi tạo hoặc cập nhật lớp, nhập thông tin khóa học, thời gian và các trường bắt buộc. CS chỉ thao tác với lớp và hành động được cấp quyền.\n3. Lập kế hoạch buổi học trước khi chuyển lớp từ DRAFT sang READY.\n4. TC phân công giáo viên và CM phân công nhân sự hỗ trợ theo kế hoạch. Lớp cần đủ giáo viên cho các buổi theo quy tắc hệ thống trước khi chuyển sang RUNNING.\n5. Khi đổi lịch một buổi tương lai, cần kiểm tra lại phân công vì buổi thay thế cần được phân công lại."
+  },
+  {
+    "id": "classes-cs",
+    "title": "Quản lý lớp và kế hoạch buổi học",
+    "roles": [
+      "CS"
+    ],
+    "paths": {
+      "CS": "/classes/update"
+    },
+    "question": "Tôi quản lý lớp và kế hoạch buổi học như thế nào?",
+    "keywords": "lop hoc ke hoach buoi tao ready draft running chuyen trang thai",
+    "content": "1. Mở Quản lý lớp học, chỉ chọn lớp bạn được cấp quyền hỗ trợ.\n2. Xem kế hoạch buổi học và các tab được cấp quyền trong chi tiết lớp.\n3. Chỉ dùng thao tác cập nhật được giao diện cho phép; kiểm tra thông báo khi lưu.\n4. Với điểm danh giáo viên, chỉ ghi nhận đúng buổi được phân công hỗ trợ sau giờ bắt đầu. Chat không đọc hồ sơ lớp hoặc thao tác thay bạn."
   },
   {
     "id": "teacher-classes",
@@ -111,60 +166,137 @@
     },
     "question": "Tôi xem lớp phụ trách và nhập kết quả học viên ở đâu?",
     "keywords": "lop phu trach hoc vien ket qua diem bai tap kiem tra nhap",
-    "content": "1. Mở Lớp được phân công và chọn lớp bạn phụ trách.\n2. Xem danh sách học viên và phần hoạt động giảng dạy hoặc kết quả trong chi tiết lớp.\n3. Khi nhập kết quả bài tập hoặc bài kiểm tra, chọn đúng học viên và hoạt động, nhập điểm hợp lệ rồi lưu.\nBạn chỉ xem và thao tác trong phạm vi lớp được hệ thống cho phép. Trợ lý chưa đọc điểm hoặc danh sách học viên thực tế."
+    "content": "1. Mở Lớp được phân công và chọn lớp bạn phụ trách.\n2. Xem học viên và các tab hoạt động giảng dạy được cấp quyền.\n3. Khi giao bài tập/bài kiểm tra hoặc nhập kết quả, chọn đúng hoạt động và học viên, điền trường bắt buộc và lưu. Chỉ dùng chức năng trong lớp được phân công.\n4. Nếu bị chặn, đọc thông báo và kiểm tra phạm vi lớp. Chat chỉ hướng dẫn, không đọc danh sách, điểm hoặc kết quả thực tế."
   },
   {
     "id": "students",
     "title": "Tra cứu và quản lý học viên",
     "roles": [
-      "ADMIN",
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/students"
+    },
+    "question": "Tôi tìm danh sách học viên ở đâu?",
+    "keywords": "hoc vien danh sach tim kiem student",
+    "content": "1. Mở màn hình học viên.\n2. Dùng bộ tìm kiếm và bộ lọc để tìm học viên cần xem.\n3. Chọn học viên để xem thông tin trong phạm vi quyền của bạn. ADMIN quản lý dữ liệu; giáo viên chỉ truy cập phạm vi được cấp.\nCó thể hỏi ‘Danh sách học viên’, ‘Có bao nhiêu học viên đang hoạt động?’ hoặc ‘Tìm học viên tên Nguyễn An’. Chat trả mã, tên, trạng thái; không trả email, số điện thoại hay điểm chi tiết."
+  },
+  {
+    "id": "students-teacher",
+    "title": "Tra cứu và quản lý học viên",
+    "roles": [
       "TEACHER"
     ],
     "paths": {
-      "ADMIN": "/students",
       "TEACHER": "/students"
     },
     "question": "Tôi tìm danh sách học viên ở đâu?",
     "keywords": "hoc vien danh sach tim kiem student",
-    "content": "1. Mở màn hình học viên.\n2. Dùng bộ tìm kiếm và bộ lọc để tìm học viên cần xem.\n3. Chọn học viên để xem thông tin trong phạm vi quyền của bạn. ADMIN quản lý dữ liệu; giáo viên chỉ truy cập phạm vi được cấp.\nTrợ lý không đọc hồ sơ cá nhân, điểm số hay số lượng học viên thực tế."
+    "content": "1. Mở Danh sách học viên từ liên kết bên dưới.\n2. Dùng bộ tìm kiếm/bộ lọc trên màn hình để tìm học viên thuộc lớp được phân công.\n3. Mở thông tin chi tiết trong phạm vi được cấp. Bạn không quản lý toàn bộ học viên hoặc thay đổi ghi danh. Chat không tìm hồ sơ hay cung cấp số lượng/danh sách học viên thực tế."
   },
   {
     "id": "payroll",
     "title": "Xem công và bảng lương",
     "roles": [
-      "ADMIN",
-      "TC",
-      "CM",
-      "TEACHER",
-      "SALE",
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/monitor/payroll"
+    },
+    "question": "Tôi xem công và bảng lương ở đâu?",
+    "keywords": "cong luong bang luong tien salary payroll thang",
+    "content": "1. Mở màn hình công lương theo liên kết bên dưới và chọn tháng cần xem.\n2. Kiểm tra công, số buổi hoặc giờ làm và thông tin bảng lương hiển thị. Nhân viên xem dữ liệu cá nhân; quản lý xem nhóm được phân quyền.\n3. Nếu có chênh lệch, kiểm tra lịch phân công và dữ liệu điểm danh, rồi trao đổi với TC/CM hoặc ADMIN.\nCó thể hỏi ‘Bảng lương tháng này’ để xem bảng lương đã lưu trong phạm vi được phép. Chưa có bảng lương không có nghĩa là lương bằng 0. Chat không tính lại hoặc sửa lương."
+  },
+  {
+    "id": "payroll-tc",
+    "title": "Xem công và bảng lương",
+    "roles": [
+      "TC"
+    ],
+    "paths": {
+      "TC": "/payroll"
+    },
+    "question": "Tôi xem công và bảng lương ở đâu?",
+    "keywords": "cong luong bang luong tien salary payroll thang",
+    "content": "1. Mở Quản lý công GV hoặc Xem công GV và chọn tháng trên giao diện.\n2. Kiểm tra các trường công/lương được cấp cho phạm vi giáo viên bạn quản lý.\n3. Khi có chênh lệch, kiểm tra dữ liệu nghiệp vụ trên màn hình hoặc liên hệ người có thẩm quyền. Chat không trả số công, mức lương, danh sách bảng lương hoặc tính lương."
+  },
+  {
+    "id": "payroll-cm",
+    "title": "Xem công và bảng lương",
+    "roles": [
+      "CM"
+    ],
+    "paths": {
+      "CM": "/payroll/history"
+    },
+    "question": "Tôi xem công và bảng lương ở đâu?",
+    "keywords": "cong luong bang luong tien salary payroll thang",
+    "content": "1. Mở Quản lý công Sale, Quản lý công CS hoặc Xem công nhân viên tùy công việc.\n2. Chọn tháng và nhóm nhân sự thuộc phạm vi quản lý trên giao diện.\n3. Kiểm tra ghi chú và thông báo nghiệp vụ trước khi thao tác. Chat chỉ hướng dẫn, không trả số công/mức lương hoặc đọc bảng lương."
+  },
+  {
+    "id": "payroll-teacher",
+    "title": "Xem công và bảng lương",
+    "roles": [
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/monitor/payroll"
+    },
+    "question": "Tôi xem công và bảng lương ở đâu?",
+    "keywords": "cong luong bang luong tien salary payroll thang",
+    "content": "1. Mở Xem công làm việc từ menu cá nhân và chọn tháng trên giao diện.\n2. Kiểm tra các trường và ghi chú công/lương của chính bạn.\n3. Nếu có chênh lệch, liên hệ người quản lý để kiểm tra theo quy trình. Chat không tra cứu, cung cấp số công/mức lương thực tế hoặc tính lại lương."
+  },
+  {
+    "id": "payroll-sale",
+    "title": "Xem công và bảng lương",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/payroll/history"
+    },
+    "question": "Tôi xem công và bảng lương ở đâu?",
+    "keywords": "cong luong bang luong tien salary payroll thang",
+    "content": "1. Mở Xem công làm việc từ menu cá nhân và chọn tháng trên giao diện.\n2. Kiểm tra các trường và ghi chú công/lương của chính bạn.\n3. Nếu có chênh lệch, liên hệ người quản lý để kiểm tra theo quy trình. Chat không tra cứu, cung cấp số công/mức lương thực tế hoặc tính lại lương."
+  },
+  {
+    "id": "payroll-cs",
+    "title": "Xem công và bảng lương",
+    "roles": [
       "CS"
     ],
     "paths": {
-      "ADMIN": "/monitor/payroll",
-      "TC": "/payroll",
-      "CM": "/payroll/history",
-      "TEACHER": "/monitor/payroll",
-      "SALE": "/payroll/history",
       "CS": "/payroll/history"
     },
     "question": "Tôi xem công và bảng lương ở đâu?",
     "keywords": "cong luong bang luong tien salary payroll thang",
-    "content": "1. Mở màn hình công lương theo liên kết bên dưới và chọn tháng cần xem.\n2. Kiểm tra công, số buổi hoặc giờ làm và thông tin bảng lương hiển thị. Nhân viên xem dữ liệu cá nhân; quản lý xem nhóm được phân quyền.\n3. Nếu có chênh lệch, kiểm tra lịch phân công và dữ liệu điểm danh, rồi trao đổi với TC/CM hoặc ADMIN.\nTrợ lý chưa truy cập dữ liệu công lương thực tế, không thể trả lời mức lương, số công hoặc tính lương thay bạn."
+    "content": "1. Mở Xem công làm việc từ menu cá nhân và chọn tháng trên giao diện.\n2. Kiểm tra các trường và ghi chú công/lương của chính bạn.\n3. Nếu có chênh lệch, liên hệ người quản lý để kiểm tra theo quy trình. Chat không tra cứu, cung cấp số công/mức lương thực tế hoặc tính lại lương."
   },
   {
-    "id": "salary-review",
+    "id": "salary-review-tc",
     "title": "Đề xuất xét duyệt bậc lương",
     "roles": [
-      "TC",
+      "TC"
+    ],
+    "paths": {
+      "TC": "/payroll"
+    },
+    "question": "Tôi gửi đề xuất xét duyệt bậc lương như thế nào?",
+    "keywords": "review xet duyet de xuat bac tang luong",
+    "content": "1. Mở quản lý công giáo viên và chọn nhân viên thuộc phạm vi quản lý.\n2. Mở chức năng gửi đề xuất review bậc lương, chọn bậc đề xuất và nhập lý do.\n3. Kiểm tra rồi gửi yêu cầu trên giao diện; theo dõi trạng thái xử lý. Bạn chỉ gửi đề xuất, không tự phê duyệt. Chat không đọc bậc lương hoặc gửi yêu cầu."
+  },
+  {
+    "id": "salary-review-cm",
+    "title": "Đề xuất xét duyệt bậc lương",
+    "roles": [
       "CM"
     ],
     "paths": {
-      "TC": "/payroll",
       "CM": "/payroll/history"
     },
     "question": "Tôi gửi đề xuất xét duyệt bậc lương như thế nào?",
     "keywords": "review xet duyet de xuat bac tang luong",
-    "content": "1. Mở quản lý công lương và chọn nhân viên thuộc nhóm bạn quản lý.\n2. Mở chức năng đề xuất review lương, chọn bậc đề xuất và nhập lý do.\n3. Kiểm tra nội dung rồi gửi yêu cầu cho ADMIN.\n4. Theo dõi trạng thái; nếu bị từ chối, điều chỉnh đề xuất trước khi gửi lại. Trợ lý chỉ hướng dẫn, không gửi yêu cầu thay bạn."
+    "content": "1. Mở quản lý công nhân viên Sale/CS và chọn nhân viên thuộc phạm vi quản lý.\n2. Mở chức năng đề xuất review lương, chọn bậc đề xuất và nhập lý do.\n3. Kiểm tra rồi gửi trên giao diện; theo dõi trạng thái xử lý. Bạn chỉ gửi đề xuất, không tự phê duyệt. Chat không đọc bậc lương hoặc gửi yêu cầu."
   },
   {
     "id": "salary-approval",
@@ -196,18 +328,40 @@
     "id": "employees",
     "title": "Quản lý hồ sơ nhân sự",
     "roles": [
-      "ADMIN",
-      "TC",
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/employees"
+    },
+    "question": "Tôi tìm và cập nhật hồ sơ nhân sự ở đâu?",
+    "keywords": "nhan su nhan vien ho so giao vien chung chi employee",
+    "content": "1. Mở danh sách nhân sự theo liên kết bên dưới: ADMIN xem nhân sự; TC xem giáo viên; CM xem Sale/CS trong phạm vi quản lý.\n2. Tìm nhân viên, chọn xem chi tiết và kiểm tra hồ sơ hoặc chứng chỉ.\n3. Chỉ dùng các thao tác cập nhật mà hệ thống cấp cho vai trò hiện tại và kiểm tra kết quả sau khi lưu.\nCó thể hỏi ‘Danh sách nhân sự’, ‘Có bao nhiêu giáo viên?’ hoặc ‘Tìm nhân viên mã NV001’. Chat chỉ hiện mã, tên, vai trò, trạng thái trong phạm vi quản lý và không sửa dữ liệu."
+  },
+  {
+    "id": "employees-tc",
+    "title": "Quản lý hồ sơ nhân sự",
+    "roles": [
+      "TC"
+    ],
+    "paths": {
+      "TC": "/teachers"
+    },
+    "question": "Tôi tìm và cập nhật hồ sơ nhân sự ở đâu?",
+    "keywords": "nhan su nhan vien ho so giao vien chung chi employee",
+    "content": "1. Mở Giáo viên.\n2. Dùng bộ tìm kiếm để chọn giáo viên trong phạm vi quản lý.\n3. Xem hồ sơ/chứng chỉ và chỉ cập nhật trường được phép trên giao diện.\n4. Kiểm tra kết quả sau khi lưu. Chat không tìm hồ sơ hoặc trả danh sách nhân sự thực tế."
+  },
+  {
+    "id": "employees-cm",
+    "title": "Quản lý hồ sơ nhân sự",
+    "roles": [
       "CM"
     ],
     "paths": {
-      "ADMIN": "/employees",
-      "TC": "/teachers",
       "CM": "/staff"
     },
     "question": "Tôi tìm và cập nhật hồ sơ nhân sự ở đâu?",
     "keywords": "nhan su nhan vien ho so giao vien chung chi employee",
-    "content": "1. Mở danh sách nhân sự theo liên kết bên dưới: ADMIN xem nhân sự; TC xem giáo viên; CM xem Sale/CS trong phạm vi quản lý.\n2. Tìm nhân viên, chọn xem chi tiết và kiểm tra hồ sơ hoặc chứng chỉ.\n3. Chỉ dùng các thao tác cập nhật mà hệ thống cấp cho vai trò hiện tại và kiểm tra kết quả sau khi lưu.\nTrợ lý chưa tra cứu hồ sơ nhân sự thực tế và không sửa dữ liệu thay bạn."
+    "content": "1. Mở Tư vấn & chăm sóc học viên.\n2. Tìm nhân viên Sale/CS thuộc phạm vi quản lý.\n3. Xem hồ sơ/chứng chỉ và chỉ dùng các thao tác cập nhật được cấp quyền.\n4. Kiểm tra sau khi lưu. Chat không đọc hồ sơ hoặc trả danh sách nhân sự thực tế."
   },
   {
     "id": "statistics",
@@ -220,29 +374,383 @@
     },
     "question": "Tôi xem thống kê hệ thống như thế nào?",
     "keywords": "thong ke bao cao doanh thu chi phi tong quan",
-    "content": "1. Mở Thống kê tổng quan.\n2. Chọn kỳ ngày, tháng hoặc năm để xem số liệu tương ứng.\n3. Kiểm tra ghi chú về dữ liệu không có sẵn. Hệ thống chưa có dữ liệu giao dịch/học phí nên không có doanh thu thực tế; không coi dữ liệu thiếu là doanh thu bằng 0.\nTrợ lý không truy vấn số liệu thống kê hiện tại."
+    "content": "1. Mở Thống kê tổng quan.\n2. Chọn kỳ ngày, tháng hoặc năm để xem số liệu tương ứng.\n3. Chỉ số học viên/lớp đang hoạt động và nhân sự phản ánh hiện tại; học viên mới, lịch và chi phí phản ánh kỳ đã chọn.\n4. Có thể hỏi ‘Thống kê tháng 11/2026’. Màn hình thống kê chưa cung cấp doanh thu; hỏi ‘Doanh thu tháng này’ để tra tổng tiền đơn PAID theo paid_at. Số này có thể gồm sandbox, không đồng nghĩa với doanh thu kế toán hoặc lợi nhuận."
   },
   {
     "id": "profile",
     "title": "Cập nhật hồ sơ và đổi mật khẩu",
     "roles": [
-      "ADMIN",
-      "TC",
-      "CM",
-      "TEACHER",
-      "SALE",
-      "CS"
+      "ADMIN"
     ],
     "paths": {
-      "ADMIN": "/profile",
-      "TC": "/profile",
-      "CM": "/profile",
-      "TEACHER": "/profile",
-      "SALE": "/profile",
-      "CS": "/profile"
+      "ADMIN": "/profile"
     },
     "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
     "keywords": "ho so ca nhan doi mat khau profile password",
     "content": "1. Mở Thông tin cá nhân từ tài khoản hoặc liên kết bên dưới.\n2. Cập nhật các trường được phép chỉnh sửa rồi lưu.\n3. Để đổi mật khẩu, sử dụng chức năng đổi mật khẩu trong hồ sơ và nhập các thông tin được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực sau khi đổi mật khẩu. Không nhập mật khẩu vào chat."
+  },
+  {
+    "id": "profile-tc",
+    "title": "Cập nhật hồ sơ và đổi mật khẩu",
+    "roles": [
+      "TC"
+    ],
+    "paths": {
+      "TC": "/profile"
+    },
+    "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
+    "keywords": "ho so ca nhan doi mat khau profile password",
+    "content": "1. Mở Thông tin cá nhân.\n2. Chỉnh sửa các trường hồ sơ được phép và lưu.\n3. Để đổi mật khẩu của chính bạn, dùng chức năng đổi mật khẩu trong hồ sơ, nhập các trường được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực. Không nhập mật khẩu vào chat. Trợ lý không đổi mật khẩu hoặc quản lý tài khoản người khác."
+  },
+  {
+    "id": "profile-cm",
+    "title": "Cập nhật hồ sơ và đổi mật khẩu",
+    "roles": [
+      "CM"
+    ],
+    "paths": {
+      "CM": "/profile"
+    },
+    "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
+    "keywords": "ho so ca nhan doi mat khau profile password",
+    "content": "1. Mở Thông tin cá nhân.\n2. Chỉnh sửa các trường hồ sơ được phép và lưu.\n3. Để đổi mật khẩu của chính bạn, dùng chức năng đổi mật khẩu trong hồ sơ, nhập các trường được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực. Không nhập mật khẩu vào chat. Trợ lý không đổi mật khẩu hoặc quản lý tài khoản người khác."
+  },
+  {
+    "id": "profile-teacher",
+    "title": "Cập nhật hồ sơ và đổi mật khẩu",
+    "roles": [
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/profile"
+    },
+    "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
+    "keywords": "ho so ca nhan doi mat khau profile password",
+    "content": "1. Mở Thông tin cá nhân.\n2. Chỉnh sửa các trường hồ sơ được phép và lưu.\n3. Để đổi mật khẩu của chính bạn, dùng chức năng đổi mật khẩu trong hồ sơ, nhập các trường được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực. Không nhập mật khẩu vào chat. Trợ lý không đổi mật khẩu hoặc quản lý tài khoản người khác."
+  },
+  {
+    "id": "profile-sale",
+    "title": "Cập nhật hồ sơ và đổi mật khẩu",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/profile"
+    },
+    "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
+    "keywords": "ho so ca nhan doi mat khau profile password",
+    "content": "1. Mở Thông tin cá nhân.\n2. Chỉnh sửa các trường hồ sơ được phép và lưu.\n3. Để đổi mật khẩu của chính bạn, dùng chức năng đổi mật khẩu trong hồ sơ, nhập các trường được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực. Không nhập mật khẩu vào chat. Trợ lý không đổi mật khẩu hoặc quản lý tài khoản người khác."
+  },
+  {
+    "id": "profile-cs",
+    "title": "Cập nhật hồ sơ và đổi mật khẩu",
+    "roles": [
+      "CS"
+    ],
+    "paths": {
+      "CS": "/profile"
+    },
+    "question": "Tôi đổi mật khẩu hoặc cập nhật hồ sơ ở đâu?",
+    "keywords": "ho so ca nhan doi mat khau profile password",
+    "content": "1. Mở Thông tin cá nhân.\n2. Chỉnh sửa các trường hồ sơ được phép và lưu.\n3. Để đổi mật khẩu của chính bạn, dùng chức năng đổi mật khẩu trong hồ sơ, nhập các trường được yêu cầu.\n4. Đăng nhập lại nếu phiên hết hiệu lực. Không nhập mật khẩu vào chat. Trợ lý không đổi mật khẩu hoặc quản lý tài khoản người khác."
+  },
+  {
+    "id": "assistant-scope",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "ADMIN có thể hỏi hướng dẫn quản trị và tra cứu dữ liệu thật qua các hàm backend được cho phép. TC, CM, TEACHER, SALE và CS chỉ hỏi chức năng thuộc role; không đọc dữ liệu thật, thống kê, bảo mật hoặc chức năng role khác. Non-admin chỉ nhận tài liệu hướng dẫn đã duyệt, không gọi model sinh câu trả lời. Chat không tạo/sửa/xóa/duyệt/thanh toán. Quyền lấy từ tài khoản đã xác thực, không từ lời tự xưng hoặc lịch sử."
+  },
+  {
+    "id": "assistant-scope-tc",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "TC"
+    ],
+    "paths": {
+      "TC": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "Trợ lý của bạn chỉ hướng dẫn cách sử dụng các chức năng thuộc vai trò đang đăng nhập, từ tài liệu đã duyệt. Không tra cứu dữ liệu thật, không trả số liệu hoặc thông tin nhạy cảm, không hướng dẫn chức năng của vai trò khác và không thực hiện thao tác thay bạn. Nội dung chat không thay đổi được vai trò hoặc phạm vi quyền."
+  },
+  {
+    "id": "assistant-scope-cm",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "CM"
+    ],
+    "paths": {
+      "CM": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "Trợ lý của bạn chỉ hướng dẫn cách sử dụng các chức năng thuộc vai trò đang đăng nhập, từ tài liệu đã duyệt. Không tra cứu dữ liệu thật, không trả số liệu hoặc thông tin nhạy cảm, không hướng dẫn chức năng của vai trò khác và không thực hiện thao tác thay bạn. Nội dung chat không thay đổi được vai trò hoặc phạm vi quyền."
+  },
+  {
+    "id": "assistant-scope-teacher",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "Trợ lý của bạn chỉ hướng dẫn cách sử dụng các chức năng thuộc vai trò đang đăng nhập, từ tài liệu đã duyệt. Không tra cứu dữ liệu thật, không trả số liệu hoặc thông tin nhạy cảm, không hướng dẫn chức năng của vai trò khác và không thực hiện thao tác thay bạn. Nội dung chat không thay đổi được vai trò hoặc phạm vi quyền."
+  },
+  {
+    "id": "assistant-scope-sale",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "Trợ lý của bạn chỉ hướng dẫn cách sử dụng các chức năng thuộc vai trò đang đăng nhập, từ tài liệu đã duyệt. Không tra cứu dữ liệu thật, không trả số liệu hoặc thông tin nhạy cảm, không hướng dẫn chức năng của vai trò khác và không thực hiện thao tác thay bạn. Nội dung chat không thay đổi được vai trò hoặc phạm vi quyền."
+  },
+  {
+    "id": "assistant-scope-cs",
+    "title": "Trợ lý hiểu hệ thống và dữ liệu nào?",
+    "roles": [
+      "CS"
+    ],
+    "paths": {
+      "CS": "/profile"
+    },
+    "question": "Trợ lý có thể giúp tôi những gì?",
+    "keywords": "tro ly ai he thong kha nang train rag du lieu hoc tri thuc",
+    "content": "Trợ lý của bạn chỉ hướng dẫn cách sử dụng các chức năng thuộc vai trò đang đăng nhập, từ tài liệu đã duyệt. Không tra cứu dữ liệu thật, không trả số liệu hoặc thông tin nhạy cảm, không hướng dẫn chức năng của vai trò khác và không thực hiện thao tác thay bạn. Nội dung chat không thay đổi được vai trò hoặc phạm vi quyền."
+  },
+  {
+    "id": "dashboard",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/"
+    },
+    "question": "Tổng quan hôm nay",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "Mở Tổng quan để xem các chỉ số, lịch hôm nay và việc cần theo dõi theo vai trò. Có thể hỏi ‘Tổng quan hôm nay’. Các chỉ số có thể bao gồm dữ liệu hiện tại và tổng giờ tuần này, cần đọc nhãn từng chỉ số. Bảng lịch tổng quan chỉ hiển thị tối đa 8 dòng. Để tra nhiều ngày, hỏi ‘Danh sách lịch tuần này’."
+  },
+  {
+    "id": "dashboard-tc",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "TC"
+    ],
+    "paths": {
+      "TC": "/"
+    },
+    "question": "Tôi sử dụng màn hình tổng quan như thế nào?",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "1. Mở Tổng quan sau đăng nhập.\n2. Đọc nhãn và ghi chú của từng mục trên màn hình.\n3. Dùng menu của vai trò hiện tại để mở công việc được cấp quyền. Chat chỉ giải thích cách sử dụng màn hình, không đọc chỉ số, lịch hoặc danh sách việc thực tế."
+  },
+  {
+    "id": "dashboard-cm",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "CM"
+    ],
+    "paths": {
+      "CM": "/"
+    },
+    "question": "Tôi sử dụng màn hình tổng quan như thế nào?",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "1. Mở Tổng quan sau đăng nhập.\n2. Đọc nhãn và ghi chú của từng mục trên màn hình.\n3. Dùng menu của vai trò hiện tại để mở công việc được cấp quyền. Chat chỉ giải thích cách sử dụng màn hình, không đọc chỉ số, lịch hoặc danh sách việc thực tế."
+  },
+  {
+    "id": "dashboard-teacher",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "TEACHER"
+    ],
+    "paths": {
+      "TEACHER": "/"
+    },
+    "question": "Tôi sử dụng màn hình tổng quan như thế nào?",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "1. Mở Tổng quan sau đăng nhập.\n2. Đọc nhãn và ghi chú của từng mục trên màn hình.\n3. Dùng menu của vai trò hiện tại để mở công việc được cấp quyền. Chat chỉ giải thích cách sử dụng màn hình, không đọc chỉ số, lịch hoặc danh sách việc thực tế."
+  },
+  {
+    "id": "dashboard-sale",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "SALE"
+    ],
+    "paths": {
+      "SALE": "/"
+    },
+    "question": "Tôi sử dụng màn hình tổng quan như thế nào?",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "1. Mở Tổng quan sau đăng nhập.\n2. Đọc nhãn và ghi chú của từng mục trên màn hình.\n3. Dùng menu của vai trò hiện tại để mở công việc được cấp quyền. Chat chỉ giải thích cách sử dụng màn hình, không đọc chỉ số, lịch hoặc danh sách việc thực tế."
+  },
+  {
+    "id": "dashboard-cs",
+    "title": "Đọc tổng quan và lịch hôm nay",
+    "roles": [
+      "CS"
+    ],
+    "paths": {
+      "CS": "/"
+    },
+    "question": "Tôi sử dụng màn hình tổng quan như thế nào?",
+    "keywords": "dashboard tong quan hom nay thong so can xu ly",
+    "content": "1. Mở Tổng quan sau đăng nhập.\n2. Đọc nhãn và ghi chú của từng mục trên màn hình.\n3. Dùng menu của vai trò hiện tại để mở công việc được cấp quyền. Chat chỉ giải thích cách sử dụng màn hình, không đọc chỉ số, lịch hoặc danh sách việc thực tế."
+  },
+  {
+    "id": "admin-workflow",
+    "title": "Luồng vận hành toàn trung tâm",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/monitor/schedules"
+    },
+    "question": "Hệ thống vận hành từ tạo lớp đến tính công như thế nào?",
+    "keywords": "quy trinh tong the toan he thong van hanh lop giao vien sale cs cong luong",
+    "content": "1. ADMIN quản lý tài khoản, nhân sự, dữ liệu học viên và lớp. Website khóa học sử dụng dữ liệu khóa/lớp trên backend.\n2. Lớp có kế hoạch buổi học, trạng thái DRAFT rồi READY trước khi phân công.\n3. Giáo viên, Sale và CS đăng ký lịch rảnh. TC duyệt/phân công giáo viên; CM duyệt/phân công Sale và CS.\n4. Phân công cần khớp kế hoạch và không trùng lịch; lớp chỉ RUNNING khi đáp ứng điều kiện nghiệp vụ.\n5. CS được phân công hỗ trợ đúng buổi ghi nhận điểm danh giáo viên sau giờ bắt đầu. Giáo viên làm việc với bài tập, bài kiểm tra và kết quả của lớp được cấp quyền.\n6. Công/lương được tính và lưu bằng chức năng nghiệp vụ; TC/CM quản lý nhóm và ADMIN duyệt review lương. Chat chỉ hướng dẫn hoặc đọc dữ liệu đã lưu."
+  },
+  {
+    "id": "role-boundaries",
+    "title": "Phạm vi các vai trò quản trị",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/permissions"
+    },
+    "question": "ADMIN, TC, CM, giáo viên, Sale và CS khác nhau thế nào?",
+    "keywords": "vai tro quyen permission admin tc cm teacher sale cs phan quyen",
+    "content": "ADMIN giám sát trung tâm, tài khoản, học viên, nhân sự, lớp, thống kê và website khóa học. TC quản lý giáo viên và lịch dạy. CM quản lý nhân sự Sale/CS và ca làm. TEACHER xem lớp/học viên được phân công, lịch cá nhân và công cá nhân. SALE xem lịch rảnh, ca làm và công cá nhân. CS xem lịch cá nhân, lớp được cấp quyền và điểm danh theo phân công. USER là tài khoản khách của website khóa học, không thuộc trợ lý trang quản trị. Quyền cụ thể do backend kiểm tra, không thay đổi bằng cách tự xưng vai trò trong chat. API đổi role tài khoản hiện bị chặn."
+  },
+  {
+    "id": "storefront-courses",
+    "title": "Quản lý website khóa học và lịch khai giảng",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/storefront"
+    },
+    "question": "Tôi đưa khóa học và lớp lên website như thế nào?",
+    "keywords": "website khoa hoc storefront cong khai published featured gia mo ban khai giang",
+    "content": "1. Mở Website khóa học để quản lý dữ liệu khóa học và lịch mở lớp.\n2. Nhập nội dung khóa, học phí, cấp độ và thông tin hiển thị. published điều khiển công khai, featured điều khiển nổi bật.\n3. Lớp có thông tin mở đăng ký, sức chứa, hình thức, địa điểm và giờ hiển thị. Kiểm tra lịch lớp và số chỗ trước khi mở bán.\n4. Danh mục công khai được lấy từ backend; không cần sửa dữ liệu mẫu trong frontend. Chat hiện hướng dẫn cấu hình khóa học, chưa tự sửa hoặc xuất bản khóa."
+  },
+  {
+    "id": "storefront-orders",
+    "title": "Đơn đăng ký, thanh toán và ghi danh",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/storefront"
+    },
+    "question": "Đơn hàng và thanh toán được xử lý thế nào?",
+    "keywords": "don hang order pending confirmed cancelled unpaid paid ghi danh mua khoa hoc hoc phi",
+    "content": "Khách đăng nhập USER, chọn khóa/lớp vào giỏ và tạo đơn đăng ký. Trạng thái đơn PENDING/CONFIRMED/CANCELLED và trạng thái thanh toán là hai khái niệm khác nhau. Đơn CONFIRMED không tự chứng minh đã PAID. Backend xác minh thông báo thanh toán trước khi ghi nhận; đơn đã thanh toán có thể còn lỗi ghi danh cần kiểm tra. Không xác nhận đã thu tiền chỉ dựa vào URL trình duyệt hoặc lời khách. ADMIN theo dõi và xử lý đơn tại Website khóa học. Hỏi ‘Đơn hàng tháng này’ để xem tổng hợp theo trạng thái; hỏi ‘Doanh thu tháng này’ để xem tiền PAID theo paid_at."
+  },
+  {
+    "id": "payment-setup",
+    "title": "Cấu hình VNPAY/MoMo và sandbox",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/storefront"
+    },
+    "question": "Vì sao MoMo hoặc VNPAY chưa thanh toán được?",
+    "keywords": "momo vnpay sandbox thanh toan ipn callback key provider",
+    "content": "Thanh toán chỉ khả dụng khi backend có đầy đủ cấu hình tài khoản merchant và địa chỉ nhận thông báo hợp lệ. MoMo/VNPAY dùng bộ khóa riêng của môi trường sandbox hoặc production. IPN cần URL HTTPS công khai chuyển tiếp về backend; localhost không nhận IPN từ nhà cung cấp. PAYMENTS ở sandbox vẫn có thể ghi PAID trong DB nên không dùng tổng đó làm tiền thu thật đã đối soát. Nhờ người vận hành kiểm tra cấu hình backend và trạng thái provider; không nhập khóa bí mật vào chat."
+  },
+  {
+    "id": "consultation",
+    "title": "Tiếp nhận yêu cầu tư vấn",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/storefront"
+    },
+    "question": "Tôi xem các yêu cầu tư vấn từ website ở đâu?",
+    "keywords": "tu van consultation lien he khach hang consent",
+    "content": "Khách có thể gửi yêu cầu tư vấn từ website khi đồng ý điều kiện của biểu mẫu. ADMIN mở Website khóa học và xem mục tư vấn để tiếp nhận thông tin. Chat hiện không trả nội dung liên hệ, số điện thoại hay email khách hàng; mở màn hình nghiệp vụ để xử lý theo quyền."
+  },
+  {
+    "id": "social-login",
+    "title": "Đăng nhập Google/Facebook và tài khoản website",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/storefront"
+    },
+    "question": "Đăng nhập Google và Facebook dùng cho tài khoản nào?",
+    "keywords": "google facebook social oauth dang nhap user tai khoan khach",
+    "content": "Đăng nhập Google/Facebook phục vụ tài khoản khách USER của website khóa học. Kết nối OAuth không cấp vai trò nhân viên hoặc ADMIN. Tài khoản nhân viên sử dụng cơ chế đăng nhập trang quản trị. Nếu provider chưa được cấu hình, cần kiểm tra client ID, secret và địa chỉ callback ở backend; không đưa secret vào frontend hoặc chat."
+  },
+  {
+    "id": "class-lifecycle",
+    "title": "Điều kiện chuyển trạng thái và đổi lịch lớp",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/classes"
+    },
+    "question": "Vì sao lớp chưa chuyển được sang RUNNING?",
+    "keywords": "draft ready running completed closed trang thai doi lich si so dieu kien",
+    "content": "Lớp có các trạng thái DRAFT, READY, RUNNING, COMPLETED, CLOSED. Cần lập kế hoạch buổi học hợp lệ trước READY và đáp ứng phân công giáo viên trước RUNNING. Khi đổi buổi tương lai, kiểm tra lại kế hoạch, lịch giáo viên, nhân sự hỗ trợ và trùng lịch học viên. Dữ liệu điểm danh hoặc công đã ghi nhận có thể ngăn sửa lịch lịch sử. Đọc lỗi cụ thể backend trả về, không cố sửa trực tiếp DB để bỏ qua điều kiện."
+  },
+  {
+    "id": "class-lifecycle-cs",
+    "title": "Điều kiện chuyển trạng thái và đổi lịch lớp",
+    "roles": [
+      "CS"
+    ],
+    "paths": {
+      "CS": "/classes/update"
+    },
+    "question": "Vì sao lớp chưa chuyển được sang RUNNING?",
+    "keywords": "draft ready running completed closed trang thai doi lich si so dieu kien",
+    "content": "Trong màn hình lớp được cấp quyền hỗ trợ, kiểm tra trạng thái và kế hoạch buổi học. Các trạng thái gồm DRAFT, READY, RUNNING, COMPLETED và CLOSED. Chỉ thao tác khi giao diện cấp quyền; đọc lỗi nghiệp vụ nếu bị chặn. Liên hệ người quản lý khi cần thay đổi ngoài quyền hỗ trợ. Chat không chuyển trạng thái hoặc đọc dữ liệu lớp."
+  },
+  {
+    "id": "student-integrity",
+    "title": "Ghi danh và bảo toàn lịch học viên",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/students"
+    },
+    "question": "Vì sao không thêm được học viên vào lớp?",
+    "keywords": "ghi danh them hoc vien trung lich muc tieu dau vao si so lop",
+    "content": "ADMIN thao tác ghi danh từ màn hình học viên/lớp. Hệ thống kiểm tra trạng thái lớp và học viên, điều kiện đầu vào, trùng lịch cùng các quy tắc nghiệp vụ. Khi bị từ chối, đọc thông báo cụ thể và kiểm tra dữ liệu liên quan. TEACHER chỉ xem học viên trong lớp được phân công; không được quản lý toàn bộ học viên hoặc sửa ghi danh qua chat."
+  },
+  {
+    "id": "assistant-data-queries",
+    "title": "Cách đặt câu hỏi tra cứu dữ liệu",
+    "roles": [
+      "ADMIN"
+    ],
+    "paths": {
+      "ADMIN": "/profile"
+    },
+    "question": "Tôi hỏi số liệu thực tế như thế nào?",
+    "keywords": "tra cuu du lieu tim kiem ten ma ngay thang nam vi du",
+    "content": "Chỉ ADMIN được tra cứu dữ liệu thật bằng chat. Ví dụ: Tổng quan hôm nay; Thống kê tháng 11/2026; Danh sách học viên; Tìm học viên tên Nguyễn An; Lịch tuần này; Bảng lương tháng trước; Đơn hàng tháng này. Chỉ lấy một chủ đề và một kỳ cho mỗi câu. Các role khác chỉ được hỏi cách sử dụng chức năng thuộc role, không được truy vấn dữ liệu hoặc hỏi thống kê/bảo mật."
   }
 ]

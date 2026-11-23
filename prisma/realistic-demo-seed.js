@@ -295,15 +295,22 @@ async function cleanupLegacyAutoSeed(prisma) {
     });
   }
 
-  if (prisma.salaryRank?.deleteMany) {
-    await prisma.salaryRank.deleteMany({
-      where: {
-        salaryRankId: {
-          startsWith: "auto-rank-",
-        },
-      },
-    });
-  }
+  // Existing employee/review/history records may still depend on an old demo rank.
+  // These JDBC-owned references are not all represented as Prisma relations.
+  // Keep the rank, rather than deleting business records or detaching salary history.
+  await prisma.$executeRaw`
+    DELETE FROM salary_ranks AS r
+    WHERE starts_with(r.salary_rank_id, 'auto-rank-')
+      AND NOT EXISTS (SELECT 1 FROM employees e WHERE e.salary_rank_id = r.salary_rank_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM salary_review_requests q
+        WHERE q.current_salary_rank_id = r.salary_rank_id OR q.proposed_salary_rank_id = r.salary_rank_id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM salary_rank_history h
+        WHERE h.previous_salary_rank_id = r.salary_rank_id OR h.salary_rank_id = r.salary_rank_id
+      )
+  `;
 
   if (prisma.permission?.deleteMany) {
     await prisma.permission.deleteMany({
@@ -590,7 +597,6 @@ async function seedAdmin(prisma, passwordHash) {
 
     update: {
       email: "admin@gk.local",
-      passwordHash,
       passwordLoginEnabled: true,
       displayName: "Quản trị viên GK",
       phone: "0908000001",
@@ -955,7 +961,6 @@ async function seedEmployees(prisma, passwordHash) {
 
       update: {
         email: person.email,
-        passwordHash,
         passwordLoginEnabled: true,
         displayName: person.fullName,
         phone: person.phone,
@@ -2054,7 +2059,6 @@ async function seedStudents(prisma, passwordHash) {
 
       update: {
         email: student.email,
-        passwordHash,
         passwordLoginEnabled: true,
         displayName: student.fullName,
         phone: student.phone,

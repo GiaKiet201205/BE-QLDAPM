@@ -2,9 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const { seedRealisticDemoData } = require("./realistic-demo-seed");
 
-const prisma = new PrismaClient();
-
-async function main() {
+async function seedDatabase(prisma) {
   const passwordHash = await bcrypt.hash("123456", 10);
 
   const roles = [
@@ -227,19 +225,31 @@ async function main() {
     },
   });
 
-  // Remove the old auto-* fixtures and load the realistic demo dataset.
-  // Manually created application data is preserved.
+  // Load the current dataset instead of recreating obsolete auto-* records.
   await seedRealisticDemoData(prisma, passwordHash);
-
-  console.log("Seed completed.");
-  console.log("Demo login: admin / 123456");
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
+async function main() {
+  const prisma = new PrismaClient();
+  try {
+    // Updating an existing demo DB must be atomic: keep the old data if any step fails.
+    await prisma.$transaction((tx) => seedDatabase(tx), {
+      maxWait: 10000,
+      timeout: 120000,
+    });
+    console.log("Seed completed: current realistic demo dataset.");
+    console.log("Existing demo passwords are preserved; new demo accounts use 123456.");
+  } finally {
     await prisma.$disconnect();
+  }
+}
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("Seed failed; database changes have been rolled back.");
+    console.error(error);
+    process.exitCode = 1;
   });
+}
+
+module.exports = { seedDatabase };

@@ -62,6 +62,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/payments/providers", "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/momo/ipn", "/api/payments/momo/return").permitAll()
                     .requestMatchers("/api/payments/orders/**").hasAuthority("ROLE_USER")
                     .requestMatchers("/api/store/catalog", "/api/store/consultations").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/store/chat/status").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/store/chat/messages").permitAll()
                     .requestMatchers("/api/store/me/**").hasAuthority("ROLE_USER")
                     .requestMatchers("/api/store/admin/**").hasAuthority("ROLE_ADMIN")
                     .requestMatchers("/api/accounts/*/role").denyAll()
