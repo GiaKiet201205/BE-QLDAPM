@@ -27,6 +27,7 @@ public class PaymentGateways {
   p.put("vnp_Amount",a.amount().multiply(BigDecimal.valueOf(100)).toBigIntegerExact().toString());p.put("vnp_CurrCode","VND");p.put("vnp_TxnRef",a.id());
   p.put("vnp_OrderInfo","Thanh toan hoc phi GK "+a.orderId());p.put("vnp_OrderType","other");p.put("vnp_Locale","vn");
   p.put("vnp_IpAddr",ip);p.put("vnp_CreateDate",time.format(a.createdAt()));p.put("vnp_ExpireDate",time.format(a.expiresAt()));p.put("vnp_ReturnUrl",config.frontend()+"/api/payments/vnpay/return");
+  if(config.isSandbox())p.put("vnp_BankCode","NCB");
   String data=vnpayData(p),url=config.vnpayUrl()+"?"+data+"&vnp_SecureHash="+hmac("HmacSHA512",config.getVnpayHashSecret(),data);
   return new Link(url,url);
  }

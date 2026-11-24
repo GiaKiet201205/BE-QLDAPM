@@ -100,13 +100,29 @@ public class StoreService {
  public List<Order> orders(Authentication actor){String username=customer(actor);return db.queryForList("SELECT order_id FROM storefront_orders WHERE username=? ORDER BY created_at DESC",String.class,username).stream().map(this::order).toList();}
  @Transactional(readOnly=true)
  public List<Order> adminOrders(){return db.queryForList("SELECT order_id FROM storefront_orders ORDER BY created_at DESC LIMIT 200",String.class).stream().map(this::order).toList();}
- private void ensureCancelable(String orderId){
-  if(db.queryForObject("SELECT count(*) FROM storefront_orders WHERE order_id=? AND payment_status='PAID'",Integer.class,orderId)>0||db.queryForObject("SELECT count(*) FROM payment_attempts WHERE order_id=? AND status IN ('CREATING','PENDING') AND expires_at>CURRENT_TIMESTAMP",Integer.class,orderId)>0)throw bad("Đơn đã thanh toán hoặc đang có mã thanh toán hiệu lực. Vui lòng kiểm tra thanh toán trước khi hủy.");
+ private Order cancelPendingOrder(String orderId,String invalidStatusMessage){
+  // Người gọi đã khóa tài khoản và đơn, cùng thứ tự khóa với xử lý thanh toán.
+  if(db.queryForObject("SELECT count(*) FROM storefront_orders WHERE order_id=? AND payment_status='PAID'",Integer.class,orderId)>0)
+   throw bad("Đơn đã thanh toán, không thể hủy đăng ký. Vui lòng liên hệ trung tâm.");
+  if(db.update("UPDATE storefront_orders SET status='CANCELLED',payment_status='UNPAID' WHERE order_id=? AND status='PENDING' AND payment_status<>'PAID'",orderId)!=1)
+   throw bad(invalidStatusMessage);
+  // Đóng phiên tại hệ thống; đường dẫn đã mở trên cổng có thể vẫn gửi kết quả về sau.
+  db.update("UPDATE payment_attempts SET status='EXPIRED',result_code='ORDER_CANCELLED',pay_url=NULL,qr_data=NULL,expires_at=CURRENT_TIMESTAMP WHERE order_id=? AND status IN ('CREATING','PENDING')",orderId);
+  return order(orderId);
  }
  @Transactional
- public Order cancel(Authentication actor,String orderId){String username=customer(actor);userLock(username);if(db.queryForList("SELECT order_id FROM storefront_orders WHERE order_id=? AND username=? FOR UPDATE",orderId,username).isEmpty())throw new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy đơn đăng ký.");ensureCancelable(orderId);if(db.update("UPDATE storefront_orders SET status='CANCELLED' WHERE order_id=? AND status='PENDING'",orderId)!=1)throw bad("Chỉ có thể hủy đơn đang chờ xác nhận.");return order(orderId);}
+ public Order cancel(Authentication actor,String orderId){
+  String username=customer(actor);userLock(username);
+  if(db.queryForList("SELECT order_id FROM storefront_orders WHERE order_id=? AND username=? FOR UPDATE",orderId,username).isEmpty())
+   throw new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy đơn đăng ký.");
+  return cancelPendingOrder(orderId,"Chỉ có thể hủy đơn đang chờ xác nhận.");
+ }
  @Transactional
- public Order reject(String orderId){Order existing=order(orderId);userLock(existing.username());db.queryForObject("SELECT order_id FROM storefront_orders WHERE order_id=? FOR UPDATE",String.class,orderId);ensureCancelable(orderId);if(db.update("UPDATE storefront_orders SET status='CANCELLED' WHERE order_id=? AND status='PENDING'",orderId)!=1)throw bad("Chỉ có thể từ chối đơn đang chờ xác nhận.");return order(orderId);}
+ public Order reject(String orderId){
+  Order existing=order(orderId);userLock(existing.username());
+  db.queryForObject("SELECT order_id FROM storefront_orders WHERE order_id=? FOR UPDATE",String.class,orderId);
+  return cancelPendingOrder(orderId,"Chỉ có thể từ chối đơn đang chờ xác nhận.");
+ }
  @Transactional
  public Order confirm(Authentication actor,String orderId){
   Order order=order(orderId);userLock(order.username());
