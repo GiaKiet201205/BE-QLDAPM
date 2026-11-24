@@ -17,11 +17,18 @@ class PaymentGatewaysTest {
  @Test void hmacUsesKnownSha256VectorAndConstantTimeComparison(){assertEquals("f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8",hmac("HmacSHA256","key","The quick brown fox jumps over the lazy dog"));assertTrue(equal("abcdef","ABCDEF"));assertFalse(equal("abcdef","abcdeg"));}
  @Test void vnpayValidatesSignatureAmountScaleAndBothSuccessCodes(){var p=vnpay("paytest","249000000");assertEquals(new BigDecimal("2490000.00"),gateway.verifyVnpay(p).amount());assertTrue(gateway.verifyVnpay(p).success());p.put("vnp_Amount","100");var tampered=p;assertThrows(ApiException.class,()->gateway.verifyVnpay(tampered));p=vnpay("paytest","249000000");p.put("vnp_TransactionStatus","02");p.put("vnp_SecureHash",hmac("HmacSHA512","test-vnpay-secret",vnpayData(p)));assertFalse(gateway.verifyVnpay(p).success());}
  @Test void momoRequiresSignedMatchingRequestAndIgnoresAuthorizedAsPaid(){var p=momo("paytest","2490000","0");assertTrue(gateway.verifyMomo(p).success());p.put("resultCode","1006");var tampered=p;assertThrows(ApiException.class,()->gateway.verifyMomo(tampered));var authorized=gateway.verifyMomo(momo("paytest","2490000","9000"));assertFalse(authorized.success());assertTrue(authorized.pending());p=momo("paytest","2490000","0");p.put("requestId","other");signMomo(p);var mismatch=p;assertThrows(ApiException.class,()->gateway.verifyMomo(mismatch));}
- @Test void emptyConfigurationAndLocalCallbackCannotEnablePayments(){var c=new PaymentConfig.Settings();assertFalse(c.configured("VNPAY"));c=config();c.setPublicApiUrl("http://localhost:8080");assertFalse(c.configured("VNPAY"));assertFalse(c.configured("MOMO"));}
+ @Test void sandboxAllowsLocalReturnWhileProductionRequiresPublicCallback(){
+  var c=new PaymentConfig.Settings();assertFalse(c.configured("VNPAY"));
+  c=config();c.setPublicApiUrl("http://localhost:8080");
+  assertTrue(c.configured("VNPAY"));assertFalse(c.configured("MOMO"));
+  c.setSandbox(false);assertFalse(c.configured("VNPAY"));
+  c.setPublicApiUrl("https://callbacks.example.test");assertTrue(c.configured("VNPAY"));
+  c.setPublicApiUrl("");assertFalse(c.configured("VNPAY"));
+ }
  @Test void momoExplicitUrlsSupportPublicIpnWithoutSharedApiOrigin(){
   var c=config();c.setPublicApiUrl("");c.setMomoEndpoint("https://test-payment.momo.vn/v2/gateway/api/create");
   c.setMomoRedirectUrl("http://localhost:5173/api/payments/momo/return");c.setMomoIpnUrl("https://callbacks.example.test/api/payments/momo/ipn");
-  assertTrue(c.configured("MOMO"));assertFalse(c.configured("VNPAY"));
+  assertTrue(c.configured("MOMO"));assertTrue(c.configured("VNPAY"));
   assertEquals("https://callbacks.example.test/api/payments/momo/ipn",c.momoIpn());
   assertEquals("http://localhost:5173/api/payments/momo/return",c.momoRedirect());
   c.setMomoIpnUrl("http://localhost:3000/payment/momo/ipn");assertFalse(c.configured("MOMO"));

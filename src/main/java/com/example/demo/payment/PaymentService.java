@@ -35,5 +35,16 @@ public class PaymentService {
   if(result.success()){try{classes.enrollPaidOrder(receipt.orderId());}catch(Exception ex){ledger.fulfillmentIssue(receipt.orderId());}}
   return receipt;
  }
- public String returned(PaymentGateways.Verified result){Attempt a=ledger.find(result.attemptId());if(!a.provider().equals(result.provider())||a.amount().compareTo(result.amount())!=0)throw new ApiException(HttpStatus.BAD_REQUEST,"Thông tin trả về không khớp.");return config.frontend()+"/payment/"+a.orderId();}
+ public String returned(PaymentGateways.Verified result){
+  Attempt a=ledger.find(result.attemptId());
+  if(!a.provider().equals(result.provider())||a.amount().compareTo(result.amount())!=0)throw new ApiException(HttpStatus.BAD_REQUEST,"Thông tin trả về không khớp.");
+  // Chỉ sandbox mới ghi nhận từ Return URL đã được kiểm tra chữ ký tại controller.
+  // Môi trường thật tiếp tục chờ IPN; thao tác ghi nhận dùng chung cơ chế chống xử lý trùng.
+  if(config.isSandbox()&&"VNPAY".equals(a.provider())){
+   if(result.success()&&(result.transactionId()==null||!result.transactionId().matches("[0-9]{1,15}")||result.transactionId().matches("0+")))
+    throw new ApiException(HttpStatus.BAD_REQUEST,"Thiếu mã giao dịch VNPAY thành công hợp lệ.");
+   notify(result);
+  }
+  return config.frontend()+"/user/profile?payment="+a.orderId();
+ }
 }
