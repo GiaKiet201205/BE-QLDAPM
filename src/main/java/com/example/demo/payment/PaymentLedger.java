@@ -43,12 +43,25 @@ public class PaymentLedger {
   if(!a.provider().equals(provider))throw conflict("Sai nhà cung cấp.");
   if(a.amount().compareTo(amount)!=0)throw new ApiException(HttpStatus.BAD_REQUEST,"Số tiền không khớp.");
   if("PAID".equals(a.status())){if(success&&!Objects.equals(a.transactionId(),tx))throw conflict("Mã giao dịch không khớp.");return new Receipt(a.orderId(),true);}
-  if(!success){db.update("UPDATE payment_attempts SET status='FAILED',result_code=? WHERE attempt_id=? AND status<>'PAID'",code,id);return new Receipt(a.orderId(),false);}
+  if(!success){
+   db.update("UPDATE payment_attempts SET status='FAILED',result_code=? WHERE attempt_id=? AND status<>'PAID'",code,id);
+   // Chỉ mã hủy 24 từ kết quả VNPAY đã được kiểm tra chữ ký mới hủy đơn đăng ký.
+   // Không để kết quả cũ hủy đơn đã trả tiền hoặc đơn đang có lần thanh toán mới hơn.
+   if("VNPAY".equals(provider)&&"24".equals(code)){
+    int cancelled=db.update("UPDATE storefront_orders SET status='CANCELLED',payment_status='UNPAID' WHERE order_id=? AND status='PENDING' AND payment_status<>'PAID' AND NOT EXISTS (SELECT 1 FROM payment_attempts WHERE order_id=? AND attempt_id<>? AND created_at>=?)",a.orderId(),a.orderId(),id,Timestamp.from(a.createdAt()));
+    if(cancelled>0){
+     db.update("UPDATE payment_attempts SET pay_url=NULL,qr_data=NULL WHERE attempt_id=?",id);
+     db.update("UPDATE payment_attempts SET status='EXPIRED',result_code='ORDER_CANCELLED',pay_url=NULL,qr_data=NULL,expires_at=CURRENT_TIMESTAMP WHERE order_id=? AND status IN ('CREATING','PENDING')",a.orderId());
+    }
+   }
+   return new Receipt(a.orderId(),false);
+  }
   if(tx==null||tx.isBlank()||"0".equals(tx)||tx.length()>100)throw conflict("Thiếu mã giao dịch thành công.");
   db.update("UPDATE payment_attempts SET status='PAID',transaction_id=?,result_code=?,paid_at=CURRENT_TIMESTAMP WHERE attempt_id=?",tx,code,id);
   db.update("UPDATE payment_attempts SET status='EXPIRED' WHERE order_id=? AND attempt_id<>? AND status IN ('CREATING','PENDING')",a.orderId(),id);
   int changed=db.update("UPDATE storefront_orders SET payment_status='PAID',paid_at=CURRENT_TIMESTAMP WHERE order_id=? AND payment_status<>'PAID'",a.orderId());
   if(changed==0)db.update("UPDATE storefront_orders SET fulfillment_error='Phát sinh thêm giao dịch thành công. Vui lòng liên hệ trung tâm để kiểm tra hoàn tiền.' WHERE order_id=?",a.orderId());
+  else db.update("UPDATE storefront_orders SET fulfillment_error='Đơn đã hủy nhưng nhà cung cấp đã xác nhận thanh toán. Vui lòng liên hệ trung tâm để kiểm tra hoàn tiền.' WHERE order_id=? AND status='CANCELLED'",a.orderId());
   return new Receipt(a.orderId(),false);
  }
  @Transactional(readOnly=true)

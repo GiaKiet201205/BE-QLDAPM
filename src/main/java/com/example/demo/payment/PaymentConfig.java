@@ -21,7 +21,7 @@ public class PaymentConfig {
    try{
     frontend();
     return switch(provider){
-     case "VNPAY" -> { api(); yield !vnpayTmnCode.isBlank()&&!vnpayHashSecret.isBlank(); }
+     case "VNPAY" -> { if(!sandbox)api(); yield !vnpayTmnCode.isBlank()&&!vnpayHashSecret.isBlank(); }
      case "MOMO" -> { momoUrl();momoRedirect();momoIpn();yield !momoPartnerCode.isBlank()&&!momoAccessKey.isBlank()&&!momoSecretKey.isBlank(); }
      default -> false;
     };
