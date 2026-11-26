@@ -59,7 +59,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/social/providers", "/api/auth/social/start", "/api/auth/social/exchange").permitAll()
                     .requestMatchers("/api/auth/social/connections").hasAuthority("ROLE_USER")
                     .requestMatchers("/actuator/health").permitAll()
-                    .requestMatchers("/api/payments/providers", "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/momo/ipn", "/api/payments/momo/return").permitAll()
+                    .requestMatchers("/api/payments/providers", "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/zalopay/callback", "/api/payments/zalopay/return").permitAll()
                     .requestMatchers("/api/payments/orders/**").hasAuthority("ROLE_USER")
                     .requestMatchers("/api/store/catalog", "/api/store/consultations").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/store/chat/status").permitAll()

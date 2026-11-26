@@ -14,6 +14,8 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,6 +33,7 @@ public class StatisticsService {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final JdbcTemplate db;
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public StatisticsResponse getStatistics(String requestedPeriod, Integer requestedYear, Integer requestedMonth,
                                             LocalDate requestedDate) {
         requireAdmin();
@@ -162,14 +165,29 @@ public class StatisticsService {
     }
 
     private FinancialSummary financialSummary(String period, LocalDate startDate, LocalDate endDate) {
+        BigDecimal revenue = sumRevenue(startDate, endDate);
+        // Bảng lương chỉ có kỳ tháng, không chia chi phí lương thành số liệu theo ngày.
         if ("DAY".equals(period)) {
-            return new FinancialSummary(null, false, null, null);
+            return new FinancialSummary(revenue, true, null, null);
         }
         String firstPeriod = YearMonth.from(startDate).toString();
         String lastPeriod = YearMonth.from(endDate).toString();
         BigDecimal salaryCost = sumPayroll(firstPeriod, lastPeriod);
         long payrollRecords = countPayroll(firstPeriod, lastPeriod);
-        return new FinancialSummary(null, false, salaryCost, payrollRecords);
+        return new FinancialSummary(revenue, true, salaryCost, payrollRecords);
+    }
+
+    private BigDecimal sumRevenue(LocalDate startDate, LocalDate endDate) {
+        // Mỗi đơn chỉ cộng một lần khi đã nhận tiền, không phụ thuộc trạng thái ghi danh.
+        // Khoảng thời gian bắt đầu có bao gồm, kết thúc không bao gồm, theo giờ Việt Nam.
+        BigDecimal value = db.queryForObject(
+                "SELECT COALESCE(sum(amount), 0) FROM storefront_orders " +
+                        "WHERE payment_status='PAID' AND paid_at >= " +
+                        "(CAST(? AS date)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh') " +
+                        "AND paid_at < ((CAST(? AS date) + interval '1 day')::timestamp " +
+                        "AT TIME ZONE 'Asia/Ho_Chi_Minh')",
+                BigDecimal.class, startDate, endDate);
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     private List<MonthlyStatistics> monthlyStatistics(int year) {
@@ -189,7 +207,7 @@ public class StatisticsService {
                         "(SELECT count(*) FROM classes c WHERE upper(c.status) IN ('READY','RUNNING','COMPLETED','CLOSED') " +
                         "AND c.start_date <= (months.month_start + interval '1 month' - interval '1 day')::date " +
                         "AND c.end_date >= months.month_start::date), " +
-                        "COALESCE(payroll.amount, 0) " +
+                        "COALESCE(payroll.amount, 0), COALESCE(payments.amount, 0) " +
                         "FROM generate_series(CAST(? AS date), CAST(? AS date), interval '1 month') " +
                         "AS months(month_start) LEFT JOIN (" +
                         "SELECT period, sum(amount) AS amount FROM (" +
@@ -197,14 +215,23 @@ public class StatisticsService {
                         "UNION ALL SELECT period, amount FROM staff_salaries" +
                         ") salary_records WHERE period BETWEEN ? AND ? GROUP BY period" +
                         ") payroll ON payroll.period=to_char(months.month_start, 'YYYY-MM') " +
+                        "LEFT JOIN (" +
+                        "SELECT date_trunc('month', paid_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS month_start, " +
+                        "sum(amount) AS amount FROM storefront_orders WHERE payment_status='PAID' " +
+                        "AND paid_at >= (CAST(? AS date)::timestamp AT TIME ZONE 'Asia/Ho_Chi_Minh') " +
+                        "AND paid_at < ((CAST(? AS date) + interval '1 month')::timestamp " +
+                        "AT TIME ZONE 'Asia/Ho_Chi_Minh') GROUP BY 1" +
+                        ") payments ON payments.month_start=months.month_start::date " +
                         "ORDER BY months.month_start",
                 (rs, rowNum) -> {
                     LocalDate monthStart = rs.getDate(1).toLocalDate();
                     int month = monthStart.getMonthValue();
+                    BigDecimal salaryCost = rs.getBigDecimal(5);
+                    BigDecimal revenue = rs.getBigDecimal(6);
                     return new MonthlyStatistics(month, "T" + month, rs.getLong(2), rs.getLong(3),
-                            rs.getLong(4), null, rs.getBigDecimal(5), null);
+                            rs.getLong(4), revenue, salaryCost, revenue.subtract(salaryCost));
                 },
-                yearStart, yearEnd, firstPeriod, lastPeriod);
+                yearStart, yearEnd, firstPeriod, lastPeriod, yearStart, yearEnd);
     }
 
     private long countStudentsCreatedBetween(LocalDate startDate, LocalDate endDate) {

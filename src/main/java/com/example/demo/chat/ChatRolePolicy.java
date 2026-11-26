@@ -11,7 +11,7 @@ final class ChatRolePolicy {
         String q = " " + ChatKnowledge.normalize(question).replaceAll("[^a-z0-9]+", " ").strip() + " ";
         if (contains(q, "thong ke", "bao cao", "doanh thu", "chi phi", "loi nhuan", "so lieu", "bao mat",
                 "phan quyen", "quyen han", "jwt", "token", "api key", "secret", "database", "sql", "co so du lieu",
-                "oauth", "ipn", "callback", "vnpay", "momo", "cau hinh", "may chu", "server", "system prompt",
+                "oauth", "ipn", "callback", "vnpay", "zalopay", "cau hinh", "may chu", "server", "system prompt",
                 "bo qua quyen", "bo qua chi thi", "bo qua huong dan", "toi la admin", "toi la quan tri", "dong vai admin")) {
             return "Nội dung này không được phép hỏi trong vai trò của bạn. Trợ lý chỉ hướng dẫn các chức năng thuộc vai trò đang đăng nhập.";
         }

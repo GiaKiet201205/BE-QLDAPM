@@ -37,7 +37,7 @@ class ChatLiveServiceTest {
     @Test void synonymsAndBodyTextRetrieveRelevantDocumentsWithoutCrossingRoleBoundary() throws Exception {
         var knowledge = new ChatKnowledge(new ObjectMapper());
         assertTrue(knowledge.search("ADMIN", "học sinh").stream().anyMatch(g -> g.id().equals("students")));
-        assertTrue(knowledge.search("ADMIN", "IPN callback MoMo").stream().anyMatch(g -> g.id().equals("payment-setup")));
-        assertTrue(knowledge.search("TEACHER", "IPN callback MoMo").stream().noneMatch(g -> g.id().equals("payment-setup")));
+        assertTrue(knowledge.search("ADMIN", "IPN callback ZaloPay").stream().anyMatch(g -> g.id().equals("payment-setup")));
+        assertTrue(knowledge.search("TEACHER", "IPN callback ZaloPay").stream().noneMatch(g -> g.id().equals("payment-setup")));
     }
 }

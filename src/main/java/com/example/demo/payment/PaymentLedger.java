@@ -17,6 +17,17 @@ public class PaymentLedger {
  private static ApiException conflict(String text){return new ApiException(HttpStatus.CONFLICT,text);}
  private Attempt attempt(ResultSet r,int n)throws SQLException{return new Attempt(r.getString("attempt_id"),r.getString("order_id"),r.getString("provider"),r.getBigDecimal("amount"),r.getString("status"),r.getString("pay_url"),r.getString("qr_data"),r.getString("transaction_id"),r.getTimestamp("created_at").toInstant(),r.getTimestamp("expires_at").toInstant());}
  public Attempt find(String id){return db.query("SELECT * FROM payment_attempts WHERE attempt_id=?",this::attempt,id).stream().findFirst().orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy giao dịch."));}
+ public List<Attempt> pendingZalopay(){
+  return db.query("SELECT * FROM payment_attempts WHERE provider='ZALOPAY' AND status IN ('CREATING','PENDING') AND created_at>CURRENT_TIMESTAMP-interval '1 day' ORDER BY created_at LIMIT 20",this::attempt);
+ }
+ @Transactional public void expireZalopay(String id){
+  Attempt a=find(id);lock(a.orderId());
+  db.update("UPDATE payment_attempts SET status='EXPIRED',pay_url=NULL,qr_data=NULL WHERE attempt_id=? AND provider='ZALOPAY' AND status IN ('CREATING','PENDING') AND expires_at<=CURRENT_TIMESTAMP",id);
+ }
+ @Transactional public boolean retireUnopenedZalopay(String id){
+  Attempt a=find(id);lock(a.orderId());
+  return db.update("UPDATE payment_attempts SET status='EXPIRED',result_code='LINK_UNAVAILABLE',expires_at=CURRENT_TIMESTAMP WHERE attempt_id=? AND provider='ZALOPAY' AND status='CREATING' AND pay_url IS NULL AND NOT EXISTS (SELECT 1 FROM storefront_orders WHERE order_id=? AND payment_status='PAID')",id,a.orderId())==1;
+ }
  private void lock(String orderId){String username=db.queryForList("SELECT username FROM storefront_orders WHERE order_id=?",String.class,orderId).stream().findFirst().orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy đơn."));db.queryForObject("SELECT username FROM users WHERE username=? FOR UPDATE",String.class,username);db.queryForObject("SELECT order_id FROM storefront_orders WHERE order_id=? FOR UPDATE",String.class,orderId);}
  private void owner(String username,String orderId){if(username==null||db.queryForObject("SELECT count(*) FROM storefront_orders o JOIN users u ON u.username=o.username WHERE o.order_id=? AND o.username=? AND u.role_id='USER' AND u.status='ACTIVE'",Integer.class,orderId,username)!=1)throw new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy đơn đăng ký của bạn.");}
  @Transactional
