@@ -664,16 +664,16 @@
   },
   {
     "id": "payment-setup",
-    "title": "Cấu hình VNPAY/MoMo và sandbox",
+    "title": "Cấu hình VNPAY/ZaloPay và sandbox",
     "roles": [
       "ADMIN"
     ],
     "paths": {
       "ADMIN": "/storefront"
     },
-    "question": "Vì sao MoMo hoặc VNPAY chưa thanh toán được?",
-    "keywords": "momo vnpay sandbox thanh toan ipn callback key provider",
-    "content": "Thanh toán chỉ khả dụng khi backend có đầy đủ cấu hình tài khoản merchant và địa chỉ nhận thông báo hợp lệ. MoMo/VNPAY dùng bộ khóa riêng của môi trường sandbox hoặc production. IPN cần URL HTTPS công khai chuyển tiếp về backend; localhost không nhận IPN từ nhà cung cấp. PAYMENTS ở sandbox vẫn có thể ghi PAID trong DB nên không dùng tổng đó làm tiền thu thật đã đối soát. Nhờ người vận hành kiểm tra cấu hình backend và trạng thái provider; không nhập khóa bí mật vào chat."
+    "question": "Vì sao ZaloPay hoặc VNPAY chưa thanh toán được?",
+    "keywords": "zalopay vnpay sandbox thanh toan ipn callback key provider",
+    "content": "Hệ thống hỗ trợ VNPAY và ZaloPay. VNPAY cần cấu hình merchant tương ứng môi trường; ZaloPay hiện chỉ hỗ trợ Sandbox với AppID, Key1 và Key2. Callback/IPN cần URL HTTPS công khai; khi chạy ZaloPay trên localhost, backend đối chiếu bằng API query, cả lúc quay về website và theo lịch nền. Chỉ ghi PAID sau khi backend xác minh kết quả. Doanh thu Sandbox là dữ liệu thử nghiệm. Nhờ người vận hành kiểm tra trạng thái provider và cấu hình backend; không nhập khóa bí mật vào chat."
   },
   {
     "id": "consultation",

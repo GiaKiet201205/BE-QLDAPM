@@ -12,5 +12,4 @@ public final class PaymentSignatures {
  public static boolean equal(String expected,String actual){return actual!=null&&actual.matches("[a-fA-F0-9]+")&&MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII),actual.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII));}
  public static String encode(String text){return URLEncoder.encode(text,StandardCharsets.UTF_8);}
  public static String vnpayData(Map<String,String> params){return new TreeMap<>(params).entrySet().stream().filter(e->e.getKey().startsWith("vnp_")&&!Set.of("vnp_SecureHash","vnp_SecureHashType").contains(e.getKey())&&e.getValue()!=null&&!e.getValue().isEmpty()).map(e->encode(e.getKey())+"="+encode(e.getValue())).collect(Collectors.joining("&"));}
- public static String momoData(Map<String,String> params,String...keys){return Arrays.stream(keys).map(k->k+"="+params.getOrDefault(k,"")).collect(Collectors.joining("&"));}
 }

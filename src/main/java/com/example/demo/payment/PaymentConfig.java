@@ -13,8 +13,9 @@ public class PaymentConfig {
  public static class Settings {
   private boolean sandbox=true;
   private String frontendUrl="http://localhost:5173",publicApiUrl="";
-  private String vnpayTmnCode="",vnpayHashSecret="",momoPartnerCode="",momoAccessKey="",momoSecretKey="";
-  private String momoEndpoint="",momoRedirectUrl="",momoIpnUrl="";
+  private String vnpayTmnCode="",vnpayHashSecret="";
+  private String zalopayAppId="",zalopayKey1="",zalopayKey2="";
+  private String zalopayCreateUrl="",zalopayQueryUrl="",zalopayRedirectUrl="",zalopayCallbackUrl="";
   public String frontend(){return origin(frontendUrl,true);}
   public String api(){return origin(publicApiUrl,false);}
   public boolean configured(String provider){
@@ -22,27 +23,37 @@ public class PaymentConfig {
     frontend();
     return switch(provider){
      case "VNPAY" -> { if(!sandbox)api(); yield !vnpayTmnCode.isBlank()&&!vnpayHashSecret.isBlank(); }
-     case "MOMO" -> { momoUrl();momoRedirect();momoIpn();yield !momoPartnerCode.isBlank()&&!momoAccessKey.isBlank()&&!momoSecretKey.isBlank(); }
+     case "ZALOPAY" -> {
+      if(!sandbox)yield false;
+      zalopayCreate();zalopayQuery();zalopayRedirect();zalopayCallback();
+      yield zalopayAppId.matches("[1-9][0-9]{0,8}")&&zalopayKey1.length()>=16&&zalopayKey2.length()>=16;
+     }
      default -> false;
     };
    }catch(IllegalArgumentException ex){return false;}
   }
   public String vnpayUrl(){return sandbox?"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html":"https://pay.vnpay.vn/vpcpay.html";}
-  public String momoUrl(){
-   String expected=(sandbox?"https://test-payment.momo.vn":"https://payment.momo.vn")+"/v2/gateway/api/create";
-   if(!momoEndpoint.isBlank()&&!expected.equals(momoEndpoint.trim()))throw new IllegalArgumentException("MOMO_ENDPOINT must match the selected payment environment.");
+  public String zalopayCreate(){return zalopayEndpoint(zalopayCreateUrl,"/v2/create");}
+  public String zalopayQuery(){return zalopayEndpoint(zalopayQueryUrl,"/v2/query");}
+  private String zalopayEndpoint(String configured,String path){
+   String expected="https://sb-openapi.zalopay.vn"+path;
+   if(!sandbox||!configured.isBlank()&&!expected.equals(configured.trim()))
+    throw new IllegalArgumentException("ZaloPay chỉ hỗ trợ endpoint Sandbox đã xác định.");
    return expected;
   }
-  public String momoRedirect(){
-   String expected=frontend()+"/api/payments/momo/return";
-   if(!momoRedirectUrl.isBlank()&&!expected.equals(momoRedirectUrl.trim()))throw new IllegalArgumentException("MOMO_REDIRECT_URL must use the storefront origin and /api/payments/momo/return.");
+  public String zalopayRedirect(){
+   String expected=frontend()+"/api/payments/zalopay/return";
+   if(!zalopayRedirectUrl.isBlank()&&!expected.equals(zalopayRedirectUrl.trim()))
+    throw new IllegalArgumentException("Địa chỉ quay về ZaloPay phải thuộc website hiện tại.");
    return expected;
   }
-  public String momoIpn(){
-   if(momoIpnUrl.isBlank())return api()+"/api/payments/momo/ipn";
-   URI uri=URI.create(momoIpnUrl.trim());
-   if(!"/api/payments/momo/ipn".equals(uri.getPath())||uri.getQuery()!=null||uri.getFragment()!=null)throw new IllegalArgumentException("Invalid MoMo IPN path.");
-   return origin(uri.resolve("/").toString(),false)+"/api/payments/momo/ipn";
+  public String zalopayCallback(){
+   // Localhost có thể đối chiếu qua API query; callback chỉ dùng khi có HTTPS công khai.
+   if(zalopayCallbackUrl.isBlank())return publicApiUrl.isBlank()?"":api()+"/api/payments/zalopay/callback";
+   URI uri=URI.create(zalopayCallbackUrl.trim());
+   if(!"/api/payments/zalopay/callback".equals(uri.getPath())||uri.getQuery()!=null||uri.getFragment()!=null
+     ||uri.getPort()!=-1&&uri.getPort()!=443)throw new IllegalArgumentException("Địa chỉ callback ZaloPay không hợp lệ.");
+   return origin(uri.resolve("/").toString(),false)+"/api/payments/zalopay/callback";
   }
   private static String origin(String value,boolean allowLocal){
    try{var uri=URI.create(value);String host=uri.getHost();boolean local=host!=null&&java.util.Set.of("localhost","127.0.0.1","[::1]").contains(host);

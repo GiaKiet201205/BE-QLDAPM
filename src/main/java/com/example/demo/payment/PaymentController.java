@@ -1,5 +1,6 @@
 package com.example.demo.payment;
 import com.example.demo.exception.ApiException;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,13 @@ public class PaymentController {
   catch(ApiException ex){String code=ex.getStatus()==HttpStatus.NOT_FOUND?"01":ex.getMessage().contains("Chữ ký")?"97":ex.getStatus()==HttpStatus.BAD_REQUEST?"04":"99";return Map.of("RspCode",code,"Message","Cannot confirm transaction");}
   catch(Exception ex){return Map.of("RspCode","99","Message","Cannot confirm transaction");}
  }
- @PostMapping("/momo/ipn") public ResponseEntity<Void> momoIpn(@RequestBody Map<String,Object> body){payments.notify(gateways.verifyMomo(PaymentGateways.strings(body)));return ResponseEntity.noContent().build();}
  @GetMapping("/vnpay/return") public void vnpayReturn(@RequestParam MultiValueMap<String,String> params,HttpServletResponse response)throws java.io.IOException{redirect(response,payments.returned(gateways.verifyVnpay(unique(params))));}
- @GetMapping("/momo/return") public void momoReturn(@RequestParam MultiValueMap<String,String> params,HttpServletResponse response)throws java.io.IOException{redirect(response,payments.returned(gateways.verifyMomo(unique(params))));}
+ @PostMapping("/zalopay/callback") public Map<String,Object> zalopayCallback(@RequestBody JsonNode body){
+  try{payments.zalopayCallback(body);return Map.of("return_code",1,"return_message","Success");}
+  catch(ApiException ex){return Map.of("return_code",ex.getStatus().is5xxServerError()?0:2,"return_message","Cannot confirm transaction");}
+  catch(Exception ex){return Map.of("return_code",0,"return_message","Retry callback");}
+ }
+ @GetMapping("/zalopay/return") public void zalopayReturn(@RequestParam MultiValueMap<String,String> params,HttpServletResponse response)throws java.io.IOException{redirect(response,payments.zalopayReturned(unique(params)));}
  private void redirect(HttpServletResponse response,String url)throws java.io.IOException{response.setHeader("Cache-Control","no-store");response.setHeader("Referrer-Policy","no-referrer");response.sendRedirect(url);}
  @ExceptionHandler(Exception.class) public ResponseEntity<Map<String,String>> error(Exception ex){HttpStatus status=ex instanceof ApiException api?api.getStatus():ex instanceof org.springframework.web.bind.MethodArgumentNotValidException?HttpStatus.BAD_REQUEST:HttpStatus.BAD_GATEWAY;String message=ex instanceof ApiException api?api.getMessage():"Không thể xử lý thanh toán. Vui lòng kiểm tra trạng thái hoặc liên hệ GK.";return ResponseEntity.status(status).cacheControl(CacheControl.noStore()).body(Map.of("message",message));}
 }

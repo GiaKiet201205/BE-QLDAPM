@@ -112,19 +112,19 @@
   },
   {
     "id": "payment",
-    "title": "Thanh toán VNPAY/MoMo trên trang đơn",
+    "title": "Thanh toán VNPAY/ZaloPay",
     "path": "/user/profile",
     "question": "Tôi thanh toán khóa học như thế nào?",
     "keywords": [
       "thanh toan",
       "vnpay",
-      "momo",
+      "zalopay",
       "ma qr",
       "quet qr",
       "tra tien",
       "phuong thuc"
     ],
-    "content": "1. Hoàn tất bước đăng ký để mở trang thanh toán của đơn.\n2. Chọn VNPAY hoặc MoMo nếu phương thức được bật. Làm theo liên kết/mã QR hiển thị trên trang.\n3. Kiểm tra số tiền và thông tin trước khi thanh toán; không gửi mật khẩu ngân hàng hoặc OTP vào chat.\n4. Quay lại trang đơn và dùng chức năng kiểm tra kết quả. Chỉ kết luận đã thanh toán khi hệ thống ghi nhận trạng thái thanh toán xác nhận.\n5. Nếu trang ghi sandbox/thử nghiệm, đây là giao dịch trải nghiệm; không tự suy ra đã thu tiền thật. Chat không xác nhận thanh toán hoặc thao tác ngân hàng thay bạn."
+    "content": "1. Kiểm tra lớp, học phí và thông tin người đăng ký tại trang xác nhận.\n2. Chọn VNPAY hoặc ZaloPay nếu phương thức được bật, rồi bấm Tiếp tục thanh toán để mở cổng thanh toán.\n3. Kiểm tra số tiền trước khi thanh toán; không gửi mật khẩu ngân hàng hoặc OTP vào chat.\n4. Sau khi hoàn tất, website chuyển về profile. Chỉ kết luận đã thanh toán khi backend xác minh và ghi nhận trạng thái PAID.\n5. Sandbox là môi trường thử nghiệm; không tự suy ra đã thu tiền thật. Chat không xác nhận thanh toán hoặc thao tác ngân hàng thay bạn."
   },
   {
     "id": "payment-help",

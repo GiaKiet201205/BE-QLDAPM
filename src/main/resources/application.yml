@@ -61,11 +61,13 @@ payment:
   sandbox: ${PAYMENT_SANDBOX:true}
   frontend-url: ${PAYMENT_FRONTEND_URL:http://localhost:5173}
   public-api-url: ${PAYMENT_PUBLIC_API_URL:}
-  vnpay-tmn-code: ${VNPAY_TMN_CODE:}
-  vnpay-hash-secret: ${VNPAY_HASH_SECRET:}
-  momo-partner-code: ${MOMO_PARTNER_CODE:}
-  momo-access-key: ${MOMO_ACCESS_KEY:}
-  momo-secret-key: ${MOMO_SECRET_KEY:}
-  momo-endpoint: ${MOMO_ENDPOINT:}
-  momo-redirect-url: ${MOMO_REDIRECT_URL:}
-  momo-ipn-url: ${MOMO_IPN_URL:}
+  vnpay-tmn-code: "ZSYGA3P2"
+  vnpay-hash-secret: "RKBAAKXZWEKYBDHXVQXSJTITTRNXSHGW"
+  # Bộ khóa công khai dùng thử của ZaloPay; chỉ bật trong Sandbox.
+  zalopay-app-id: ${ZALOPAY_APP_ID:2554}
+  zalopay-key1: ${ZALOPAY_KEY1:sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn}
+  zalopay-key2: ${ZALOPAY_KEY2:trMrHtvjo6myautxDUiAcYsVtaeQ8nhf}
+  zalopay-create-url: ${ZALOPAY_CREATE_URL:}
+  zalopay-query-url: ${ZALOPAY_QUERY_URL:}
+  zalopay-redirect-url: ${ZALOPAY_REDIRECT_URL:}
+  zalopay-callback-url: ${ZALOPAY_CALLBACK_URL:}
